@@ -1,0 +1,34 @@
+# @package _global_
+# Fine-tuning and stage 1: full fine-tune of the DiT, AdamW, warmup + cosine LR.
+
+defaults:
+  - base
+  - _self_
+
+lora:
+  lora_base_model: null
+  lora_target_modules: null
+  lora_rank: 32
+  lora_checkpoint: null
+  preset_lora_path: null
+  preset_lora_model: null
+
+train_module:
+  type: PrimeSimTrainModule
+  action_dim: ${action_dim}
+  model: ${model}             # the model files' paths
+  causal: false                 # chunk-causal attention (stages 1-2)
+  trainable_models: dit
+  lora_base_model: ${lora.lora_base_model}
+  lora_target_modules: ${lora.lora_target_modules}
+  lora_rank: ${lora.lora_rank}
+  lora_checkpoint: ${lora.lora_checkpoint}
+  preset_lora_path: ${lora.preset_lora_path}
+  preset_lora_model: ${lora.preset_lora_model}
+
+optimizer:
+  type: AdamW
+  lr: ${learning_rate}
+  betas: ${optimizer_cfg.betas}
+  weight_decay: ${optimizer_cfg.weight_decay}   # 0 for norms and biases
+

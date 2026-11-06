@@ -1,0 +1,169 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAgiBotWorld2026
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+    source_cols: &state_cols
+      left_eef:      [34, 35, 36, 26, 27, 28, 29]
+      left_gripper:  [0]
+      right_eef:     [37, 38, 39, 30, 31, 32, 33]
+      right_gripper: [1]
+      head:          [82, 83, 84]
+      waist:         [85, 86, 87, 88, 89]
+  - type: GetActionAgiBotWorld2026
+    action_len: ${action_len}
+    key_mapper:
+      - action_vector: ("action", "action_mask")
+    source_cols: &action_cols
+      left_eef:      [2, 3, 4, 8, 9, 10, 11]
+      left_gripper:  [0]
+      right_eef:     [5, 6, 7, 12, 13, 14, 15]
+      right_gripper: [1]
+      head:          [30, 31, 32]
+      waist:         [33, 34, 35, 36, 37]
+      chassis:       [38, 39, 43]
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAgiBotWorld2026
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+    source_cols: *state_cols
+  - type: GetActionAgiBotWorld2026
+    action_len: ${action_len}
+    key_mapper:
+      - action_vector: ("action", "action_mask")
+    source_cols: *action_cols
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  action_from_state: false
+  fps: ${fps}
+  repo_ids:
+    - RichInteraction/CommercialSpaces/task_4158/387881_388058/data
+    - RichInteraction/CommercialSpaces/task_4158/388059_396183/data
+    - RichInteraction/CommercialSpaces/task_4158/396214_398711/data
+    - RichInteraction/CommercialSpaces/task_4158/398722_408892/data
+    - RichInteraction/CommercialSpaces/task_4158/408907_409243/data
+    - RichInteraction/CommercialSpaces/task_4158/409246_409501/data
+    - RichInteraction/CommercialSpaces/task_4158/409503_416251/data
+    - RichInteraction/CommercialSpaces/task_4158/416262_417681/data
+    - RichInteraction/CommercialSpaces/task_4158/417687_422821/data
+    - RichInteraction/CommercialSpaces/task_4158/422835_429495/data
+    - RichInteraction/CommercialSpaces/task_4158/429506_432094/data
+    - RichInteraction/CommercialSpaces/task_4158/432096_432360/data
+    - RichInteraction/CommercialSpaces/task_4158/432361_435905/data
+    - RichInteraction/CommercialSpaces/task_4158/435916_445820/data
+    - RichInteraction/CommercialSpaces/task_4158/445823_455449/data
+    - RichInteraction/CommercialSpaces/task_4158/455458_457699/data
+    - RichInteraction/CommercialSpaces/task_4158/457721_459104/data
+    - RichInteraction/CommercialSpaces/task_4182/388087_388267/data
+    - RichInteraction/CommercialSpaces/task_4182/388269_405075/data
+    - RichInteraction/CommercialSpaces/task_4182/405084_408664/data
+    - RichInteraction/CommercialSpaces/task_4182/408668_409552/data
+    - RichInteraction/CommercialSpaces/task_4182/409554_411754/data
+    - RichInteraction/CommercialSpaces/task_4182/411764_420343/data
+    - RichInteraction/CommercialSpaces/task_4182/420356_421555/data
+    - RichInteraction/CommercialSpaces/task_4182/421564_425538/data
+    - RichInteraction/CommercialSpaces/task_4182/425545_428744/data
+    - RichInteraction/CommercialSpaces/task_4182/428753_431894/data
+    - RichInteraction/CommercialSpaces/task_4182/431896_432478/data
+    - RichInteraction/CommercialSpaces/task_4182/432482_441836/data
+    - RichInteraction/CommercialSpaces/task_4182/441861_453887/data
+    - RichInteraction/CommercialSpaces/task_4439/445758_455204/data
+    - RichInteraction/CommercialSpaces/task_4439/455282_458437/data
+    - RichInteraction/CommercialSpaces/task_4439/458713_458713/data
+    - RichInteraction/Home/task_4224/404567_454257/data
+    - RichInteraction/Home/task_4231/404641_409206/data
+    - RichInteraction/Home/task_4231/409211_416621/data
+    - RichInteraction/Home/task_4231/416630_454362/data
+    - RichInteraction/Home/task_4231/454415_459125/data

@@ -1,0 +1,119 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.rgb.zed_link_camera_0: img_1
+      observation.rgb.left_realsense_link_camera_0: img_2
+      observation.rgb.right_realsense_link_camera_0: img_3
+      observation.state: state_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetState2026Challenge
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+  - type: GetAction2026ChallengeFromState
+    action_len: ${action_len}
+    # row OFFSET into the shared frame window, not a length: frames 1..action_len,
+    # i.e. the pose reached by each transition. Needs action_from_state below.
+    state_len: 1
+    key_mapper:
+      - state_vector: ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the household manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the household manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.rgb.zed_link_camera_0: img_1
+      observation.rgb.left_realsense_link_camera_0: img_2
+      observation.rgb.right_realsense_link_camera_0: img_3
+      observation.state: state_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetState2026Challenge
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+  - type: GetAction2026ChallengeFromState
+    action_len: ${action_len}
+    # row OFFSET into the shared frame window, not a length: frames 1..action_len,
+    # i.e. the pose reached by each transition. Needs action_from_state below.
+    state_len: 1
+    key_mapper:
+      - state_vector: ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the household manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the household manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - lerobot
+  action_sources:
+    - observation.state
+  # the action IS the state column, so it keeps the whole frame window and
+  # GetAction2026ChallengeFromState slices the action rows out of it
+  action_from_state: true
+  fps: ${fps}

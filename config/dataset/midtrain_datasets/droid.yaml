@@ -1,0 +1,123 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.exterior_1_left: img_1
+      observation.images.wrist_left: img_2
+      observation.images.exterior_2_left: img_3
+      observation.state.cartesian_position: left_eef_state
+      observation.state.gripper_position: left_gripper_state
+      action.cartesian_position: left_eef_action
+      action.gripper_position: left_gripper_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateDROID
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_gripper_state"): state
+  - type: GetActionDROID
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_gripper_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.exterior_1_left: img_1
+      observation.images.wrist_left: img_2
+      observation.images.exterior_2_left: img_3
+      observation.state.cartesian_position: left_eef_state
+      observation.state.gripper_position: left_gripper_state
+      action.cartesian_position: left_eef_action
+      action.gripper_position: left_gripper_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateDROID
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_gripper_state"): state
+  - type: GetActionDROID
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_gripper_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - lerobot
+  action_sources:
+    - action.cartesian_position
+    - action.gripper_position
+  # DROID is recorded at 15 Hz, and lerobot only accepts delta_timestamps that are
+  # multiples of 1/native_fps (tolerance_s is 1e-4, and the check raises). The global
+  # fps is 10, and 15/10 is not an integer, so every odd frame would miss by 33 ms.
+  # This dataset therefore keeps its native rate, the same way rt1.yaml does: 33
+  # frames still, spanning 2.13s here against 3.2s elsewhere. The frame COUNT is what
+  # has to match across datasets for a batch to collate, not the span.
+  fps: 15

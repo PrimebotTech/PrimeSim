@@ -1,0 +1,215 @@
+# InternData-A1 lift2 (robot_type "ARX Lift-2", 30 fps), task group long_horizon_tasks.
+#
+# Bimanual, three views. Column layout is identical to interndata_a1_genie1_sim.yaml, so
+# the same three transforms are reused unchanged.
+#
+# Geometry caveat specific to this profile: no official URDF for the ARX Lift-2 was
+# obtainable, so its link chain was IDENTIFIED FROM THE RECORDED POSES by linear
+# least-squares with axes and origin rpy held at official values. Agreement with the
+# recorded tcp/ee columns is ~1 um -- good, but it is a data-derived model, not a vendor
+# document; the FK audit records it as `geometry_source: data_derived_chain`. The other
+# A1 profiles are official-URDF exact (2-5e-08 m).
+#
+# Its TCP offset runs along the tool +X (161.57 mm), not +Z as on franka/split_aloha/genie1.
+# Nothing here depends on that -- the pose is read from the recorded column, not recomputed
+# -- but it matters to anyone re-deriving TCP from FK.
+#
+# Source: /path/to/raw/dataset
+# (native LeRobot v3 staging of the official `sim_updated_lerobotv30` archives; 286/286
+# staged, 1,488 roots total. Provenance + sidecar-uniformity table in
+# /pfs/unified_actions/docs/records/claude_handoff_sim_updated_native_v30_2026_08_27.md)
+#
+# WHY THIS PROFILE IS SPLIT ACROSS TASK GROUPS: `root / repo_id` is joined by
+# LeRobotDataset, and huggingface's validate_repo_id rejects a repo_id with more than two
+# path segments. The corpus nests as <task_group>/<embodiment>/<task>[/<object>], so the
+# root has to absorb <task_group>/<embodiment> for the repo_ids to be legal. That is the
+# only reason there is one config per task group rather than one per profile.
+#
+# Two things this config does NOT claim:
+#   * Every root carries `readiness.training_allowlist = false` in its
+#     meta/unified_actions.json. Geometry (L1) is certified; causal action (L2) and camera
+#     (L3) are not. Do not read this config's existence as a training gate.
+#   * `actions.*` is a known LEFT-SHIFTED COPY of achieved state, not a controller command
+#     -- measured at 1e-06 tolerance on 12 roots of this profile
+#     (out/internData_a1_native_v30_master_timing_20260831.json). `ToRelativeAction`
+#     therefore yields "delta to the next achieved pose": a valid world-model transition
+#     target, NOT policy supervision. This is exactly what interndata_a1_genie1_sim.yaml
+#     already does with the same columns.
+#
+# eef slots come from `*tcp_to_robot_pose` (grasp point in the robot root frame), not
+# `*ee_to_robot_pose`, matching genie1: TCP is where contact happens. Quaternions in this
+# corpus are wxyz; GetStateInternDataA1Genie1 reorders them to the slots' xyzw.
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      images.rgb.head: img_1
+      images.rgb.hand_left: img_2
+      images.rgb.hand_right: img_3
+      states.left_tcp_to_robot_pose: left_eef_state
+      states.left_gripper.position: left_grip_state
+      states.right_tcp_to_robot_pose: right_eef_state
+      states.right_gripper.position: right_grip_state
+      actions.left_tcp_to_robot_pose: left_eef_action
+      actions.left_gripper.position: left_grip_action
+      actions.right_tcp_to_robot_pose: right_eef_action
+      actions.right_gripper.position: right_grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_grip_state", "right_eef_state", "right_grip_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_grip_action", "right_eef_action", "right_grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      images.rgb.head: img_1
+      images.rgb.hand_left: img_2
+      images.rgb.hand_right: img_3
+      states.left_tcp_to_robot_pose: left_eef_state
+      states.left_gripper.position: left_grip_state
+      states.right_tcp_to_robot_pose: right_eef_state
+      states.right_gripper.position: right_grip_state
+      actions.left_tcp_to_robot_pose: left_eef_action
+      actions.left_gripper.position: left_grip_action
+      actions.right_tcp_to_robot_pose: right_eef_action
+      actions.right_gripper.position: right_grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_grip_state", "right_eef_state", "right_grip_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_grip_action", "right_eef_action", "right_grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - "clean_the_dirt_with_brown_cloth_left_arm"
+    - "clean_the_dirt_with_brown_cloth_right_arm"
+    - "clean_the_dirt_with_sponge_left_arm"
+    - "clean_the_dirt_with_sponge_right_arm"
+    - "clean_the_dirt_with_white_cloth_left_arm"
+    - "clean_the_dirt_with_white_cloth_right_arm"
+    - "collaborate_assemble_a_beef_sandwich_part1"
+    - "collaborate_assemble_a_beef_sandwich_part2"
+    - "collaborate_assemble_a_beef_sandwich_part3"
+    - "collaborate_assemble_a_ham_sandwich_part1"
+    - "collaborate_assemble_a_ham_sandwich_part2"
+    - "collect_the_glues"
+    - "gather_the_teaboxes"
+    - "handover_objects_left_right_part1"
+    - "handover_objects_left_right_part10"
+    - "handover_objects_left_right_part2"
+    - "handover_objects_left_right_part3"
+    - "handover_objects_left_right_part4"
+    - "handover_objects_left_right_part5"
+    - "handover_objects_left_right_part6"
+    - "handover_objects_left_right_part7"
+    - "handover_objects_left_right_part8"
+    - "handover_objects_left_right_part9"
+    - "handover_objects_right_left_part1"
+    - "handover_objects_right_left_part10"
+    - "handover_objects_right_left_part2"
+    - "handover_objects_right_left_part3"
+    - "handover_objects_right_left_part4"
+    - "handover_objects_right_left_part5"
+    - "handover_objects_right_left_part6"
+    - "handover_objects_right_left_part7"
+    - "handover_objects_right_left_part9"
+    - "make_a_sandwich"
+    - "pack_in_objects_part1"
+    - "pack_in_objects_part2"
+    - "pack_in_objects_part3"
+    - "sort_parts"
+    - "sort_the_rubbish_part1"
+    - "sort_the_rubbish_part2"
+    - "sort_the_rubbish_part3"
+    - "sort_the_rubbish_part4"
+    - "stack_a_beef_sandwich"
+    - "store_objects_in_the_drawer_part1"
+    - "store_objects_in_the_drawer_part2"
+    - "store_objects_in_the_drawer_part3"
+    - "store_objects_in_the_drawer_part4"
+    - "sweep_the_trash_part1"
+    - "sweep_the_trash_part2"
+  action_sources:
+    - actions.left_tcp_to_robot_pose
+    - actions.left_gripper.position
+    - actions.right_tcp_to_robot_pose
+    - actions.right_gripper.position
+  fps: ${fps}

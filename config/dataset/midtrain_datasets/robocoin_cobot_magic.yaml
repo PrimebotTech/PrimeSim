@@ -1,0 +1,184 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      observation.state: state
+      action: action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      observation.state: state
+      action: action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - Agilex_Cobot_Magic_basket_storage_banana
+    - Agilex_Cobot_Magic_basket_storage_bread
+    - Agilex_Cobot_Magic_basket_storage_egg_yolk_pastry
+    - Agilex_Cobot_Magic_basket_storage_long_bread
+    - Agilex_Cobot_Magic_basket_storage_orange
+    - Agilex_Cobot_Magic_basket_storage_peach
+    - Agilex_Cobot_Magic_fold_the_pants
+    - Agilex_Cobot_Magic_plate_storage
+    - Agilex_Cobot_Magic_pour_rice
+    - Agilex_Cobot_Magic_pour_tea
+    - Agilex_Cobot_Magic_scoop_coffee_beans
+    - Agilex_Cobot_Magic_stack_baskets
+    - Agilex_Cobot_Magic_stir_coffee
+    - Agilex_Cobot_Magic_wipe_table
+    - Agilex_Cobot_Magic_wipe_the_table
+    - Agilex_Cobot_Magic_zip_up_the_document_bag
+    - Cobot_Magic_clean_blackboard
+    - Cobot_Magic_cube_reset
+    - Cobot_Magic_cut_banana
+    - Cobot_Magic_desktop_organization
+    - Cobot_Magic_food_packaging
+    - Cobot_Magic_make_fruit_salad
+    - Cobot_Magic_mobile_cube
+    - Cobot_Magic_mobile_cube_blackboard
+    - Cobot_Magic_move_beverage
+    - Cobot_Magic_move_plate
+    - Cobot_Magic_move_the_ball
+    - Cobot_Magic_move_the_ball_and_the_cube_block
+    - Cobot_Magic_move_the_ball_interference
+    - Cobot_Magic_place_square_pyramid
+    - Cobot_Magic_place_the_cube_block
+    - Cobot_Magic_pour_drink
+    - Cobot_Magic_pour_water_a
+    - Cobot_Magic_pour_water_bottle
+    - Cobot_Magic_prepare_breakfast
+    - Cobot_Magic_pull_zipper
+    - Cobot_Magic_pushing_magnet
+    - Cobot_Magic_twist_bottle_cap
+    - Cobot_Magic_water_bottle_storage
+  action_sources:
+    - action
+    - eef_sim_pose_action
+    - gripper_open_scale_action
+  fps: ${fps}

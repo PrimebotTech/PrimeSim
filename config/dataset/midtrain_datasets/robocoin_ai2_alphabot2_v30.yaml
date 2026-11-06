@@ -1,0 +1,176 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_front_head_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      observation.state: state
+      action: action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+    torso: [30, 31, 32, 33]
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+    torso: [30, 31, 32, 33]
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_front_head_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      observation.state: state
+      action: action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+    torso: [30, 31, 32, 33]
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+    torso: [30, 31, 32, 33]
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - AI2_Alphabot_2_arrange_teaset
+    - AI2_Alphabot_2_clink_glasses
+    - AI2_Alphabot_2_heat_test_tube
+    - AI2_Alphabot_2_insert_straw
+    - AI2_Alphabot_2_move_basket
+    - AI2_Alphabot_2_open_microwave
+    - AI2_Alphabot_2_organize_cosmetics
+    - AI2_Alphabot_2_organize_lab_equipment
+    - AI2_Alphabot_2_organize_pencil_holder
+    - AI2_Alphabot_2_pick_stirring_rod
+    - AI2_Alphabot_2_pick_test_tube
+    - AI2_Alphabot_2_pick_thermometer
+    - AI2_Alphabot_2_place_Tapes
+    - AI2_Alphabot_2_pour_liquid
+    - AI2_Alphabot_2_pour_water
+    - AI2_Alphabot_2_shake_beaker
+    - AI2_Alphabot_2_shake_bottle
+    - AI2_Alphabot_2_shake_test_tube
+    - AI2_Alphabot_2_sort_angle_iron
+    - AI2_Alphabot_2_sort_garbage_bag_and_box
+    - AI2_Alphabot_2_sort_personal_care_items
+    - AI2_Alphabot_2_sort_warehouse
+    - AI2_Alphabot_2_stack_cups
+    - AI2_Alphabot_2_stamp_document
+    - AI2_Alphabot_2_stir_spoon
+    - AI2_Alphabot_2_stir_water
+    - AI2_Alphabot_2_test_data_cable
+  action_sources:
+    - action
+    - eef_sim_pose_action
+    - gripper_open_scale_action
+  fps: ${fps}

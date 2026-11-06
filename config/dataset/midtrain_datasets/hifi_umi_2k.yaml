@@ -1,0 +1,573 @@
+# HiFi-UMI-2K -- /path/to/root/dir
+#
+# LeRobot v3.0, robot_type simpleai_umi_4.0, recorded at 25 Hz. 398 shards laid out as
+# chunk-{0000..0397}/part-0000, 482,060 episodes and 192.3M frames (2,137 hours), 15 TB on
+# disk. All 398 report an identical feature signature, so FillMissingViews is not needed.
+#
+# chunk-0273..0397 landed after this file was first written and add 146,645 episodes /
+# 58.9M frames to the 273 it originally listed -- a 44% increase. They were checked before
+# being added: all 398 shard dirs carry part-0000/_SUCCESS plus meta/stats.json and
+# meta/tasks.parquet, and info.json for chunk-0000/0272/0273/0300/0397 agrees on
+# robot_type, fps, codebase_version and the whole feature dict, so the column map below
+# needs no per-shard special case.
+#
+# `observation.state` and `action` are the same 20-wide layout, RIGHT ARM FIRST
+# (meta/info.json: state_layout.order == ["right", "left"]):
+#
+#    slice      width  contents
+#    [ 0: 3]      3    right eef xyz
+#    [ 3: 9]      6    right eef rotation, 6D  (rotation_6d_layout: first_two_rows)
+#    [ 9:10]      1    right gripper angle, radians
+#    [10:13]      3    left  eef xyz
+#    [13:19]      6    left  eef rotation, 6D
+#    [19:20]      1    left  gripper angle, radians
+#
+# So GetStateHiFiUMI / GetActionHiFiUMI do two things the other writers do not: convert
+# rot6d -> quaternion for the shared layout's xyz+quat eef slots (9 source dims -> 7, a
+# width change a column map cannot express, which is why each spells out its own
+# __call__), and undo the right-then-left ordering -- that one costs no code, since
+# HIFI_UMI_SOURCE_COLS names columns per slot and resolve_source_cols emits them in
+# SLOT_OFFSETS order. The rot6d convention comes from rotation_6d_to_matrix in
+# primesim/utils/rotation_utils.py, which stacks with dim=-2, i.e. reads the first two
+# ROWS -- matching rotation_6d_layout above. The columns reading is the transpose and so
+# the inverse rotation, and nothing downstream would distinguish the two.
+#
+# Wired into the mix as `midtrain_datasets/hifi_umi_2k@hifi_umi_2k` in midtrain.yaml.
+#
+# action_layout.type is absolute_next_state_target -- action rows are
+# [state_1, state_2, ..., state_last, state_last] (single-frame episodes use state_0).
+# So ToRelativeAction below is correct as written: the action is an absolute pose in the
+# same frame and units as the state, one step ahead.
+#
+# observation.state_valid / action_valid (bool[20]) mark per-dimension validity, and
+# state_layout.invalid_policy is carry_forward_state_with_observation.state_valid_false
+# -- an invalid frame repeats the previous pose rather than storing a sentinel, so bad
+# frames are stale, not detectably wrong. Folding them in is opt-in and off below: add
+# `valid_source: action_valid` to GetActionHiFiUMI (and the feature to RefactorLerobot's
+# key_mapper, so the datamodule requests the column) once the false-flag rate is known
+# to be worth the extra column.
+#
+# Cameras -- 6 streams, all 3x512x640. Three are wired in:
+#   img_1  observation.images.head_main       egocentric overview, both grippers in frame
+#   img_2  observation.images.left_hand_up    left wrist
+#   img_3  observation.images.right_hand_up   right wrist
+# Unused: head_main_stereo_right, and left/right_hand_down.
+
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.head_main: img_1
+      observation.images.left_hand_up: img_2
+      observation.images.right_hand_up: img_3
+      observation.state: eef_state
+      action: eef_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateHiFiUMI
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_state"): state
+  - type: GetActionHiFiUMI
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.head_main: img_1
+      observation.images.left_hand_up: img_2
+      observation.images.right_hand_up: img_3
+      observation.state: eef_state
+      action: eef_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateHiFiUMI
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_state"): state
+  - type: GetActionHiFiUMI
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  action_from_state: false
+  # Recorded at 25 Hz, so the sampling grid must be 25 or an exact integer subsample of
+  # it: lerobot resolves the parquet columns against a 1e-4 tolerance and raises rather
+  # than interpolating, and the 10/15 fps the launch configs use are not multiples of
+  # 0.04 s. 12.5 (every 2nd frame) is the exact subsample nearest that 10-15 range, so
+  # a window of ${num_frames} spans a comparable stretch of real time to the rest of the
+  # mix. Change this only to 25.0 or 12.5 unless the recording rate changes.
+  fps: 12.5
+  repo_ids:
+    - chunk-0000/part-0000
+    - chunk-0001/part-0000
+    - chunk-0002/part-0000
+    - chunk-0003/part-0000
+    - chunk-0004/part-0000
+    - chunk-0005/part-0000
+    - chunk-0006/part-0000
+    - chunk-0007/part-0000
+    - chunk-0008/part-0000
+    - chunk-0009/part-0000
+    - chunk-0010/part-0000
+    - chunk-0011/part-0000
+    - chunk-0012/part-0000
+    - chunk-0013/part-0000
+    - chunk-0014/part-0000
+    - chunk-0015/part-0000
+    - chunk-0016/part-0000
+    - chunk-0017/part-0000
+    - chunk-0018/part-0000
+    - chunk-0019/part-0000
+    - chunk-0020/part-0000
+    - chunk-0021/part-0000
+    - chunk-0022/part-0000
+    - chunk-0023/part-0000
+    - chunk-0024/part-0000
+    - chunk-0025/part-0000
+    - chunk-0026/part-0000
+    - chunk-0027/part-0000
+    - chunk-0028/part-0000
+    - chunk-0029/part-0000
+    - chunk-0030/part-0000
+    - chunk-0031/part-0000
+    - chunk-0032/part-0000
+    - chunk-0033/part-0000
+    - chunk-0034/part-0000
+    - chunk-0035/part-0000
+    - chunk-0036/part-0000
+    - chunk-0037/part-0000
+    - chunk-0038/part-0000
+    - chunk-0039/part-0000
+    - chunk-0040/part-0000
+    - chunk-0041/part-0000
+    - chunk-0042/part-0000
+    - chunk-0043/part-0000
+    - chunk-0044/part-0000
+    - chunk-0045/part-0000
+    - chunk-0046/part-0000
+    - chunk-0047/part-0000
+    - chunk-0048/part-0000
+    - chunk-0049/part-0000
+    - chunk-0050/part-0000
+    - chunk-0051/part-0000
+    - chunk-0052/part-0000
+    - chunk-0053/part-0000
+    - chunk-0054/part-0000
+    - chunk-0055/part-0000
+    - chunk-0056/part-0000
+    - chunk-0057/part-0000
+    - chunk-0058/part-0000
+    - chunk-0059/part-0000
+    - chunk-0060/part-0000
+    - chunk-0061/part-0000
+    - chunk-0062/part-0000
+    - chunk-0063/part-0000
+    - chunk-0064/part-0000
+    - chunk-0065/part-0000
+    - chunk-0066/part-0000
+    - chunk-0067/part-0000
+    - chunk-0068/part-0000
+    - chunk-0069/part-0000
+    - chunk-0070/part-0000
+    - chunk-0071/part-0000
+    - chunk-0072/part-0000
+    - chunk-0073/part-0000
+    - chunk-0074/part-0000
+    - chunk-0075/part-0000
+    - chunk-0076/part-0000
+    - chunk-0077/part-0000
+    - chunk-0078/part-0000
+    - chunk-0079/part-0000
+    - chunk-0080/part-0000
+    - chunk-0081/part-0000
+    - chunk-0082/part-0000
+    - chunk-0083/part-0000
+    - chunk-0084/part-0000
+    - chunk-0085/part-0000
+    - chunk-0086/part-0000
+    - chunk-0087/part-0000
+    - chunk-0088/part-0000
+    - chunk-0089/part-0000
+    - chunk-0090/part-0000
+    - chunk-0091/part-0000
+    - chunk-0092/part-0000
+    - chunk-0093/part-0000
+    - chunk-0094/part-0000
+    - chunk-0095/part-0000
+    - chunk-0096/part-0000
+    - chunk-0097/part-0000
+    - chunk-0098/part-0000
+    - chunk-0099/part-0000
+    - chunk-0100/part-0000
+    - chunk-0101/part-0000
+    - chunk-0102/part-0000
+    - chunk-0103/part-0000
+    - chunk-0104/part-0000
+    - chunk-0105/part-0000
+    - chunk-0106/part-0000
+    - chunk-0107/part-0000
+    - chunk-0108/part-0000
+    - chunk-0109/part-0000
+    - chunk-0110/part-0000
+    - chunk-0111/part-0000
+    - chunk-0112/part-0000
+    - chunk-0113/part-0000
+    - chunk-0114/part-0000
+    - chunk-0115/part-0000
+    - chunk-0116/part-0000
+    - chunk-0117/part-0000
+    - chunk-0118/part-0000
+    - chunk-0119/part-0000
+    - chunk-0120/part-0000
+    - chunk-0121/part-0000
+    - chunk-0122/part-0000
+    - chunk-0123/part-0000
+    - chunk-0124/part-0000
+    - chunk-0125/part-0000
+    - chunk-0126/part-0000
+    - chunk-0127/part-0000
+    - chunk-0128/part-0000
+    - chunk-0129/part-0000
+    - chunk-0130/part-0000
+    - chunk-0131/part-0000
+    - chunk-0132/part-0000
+    - chunk-0133/part-0000
+    - chunk-0134/part-0000
+    - chunk-0135/part-0000
+    - chunk-0136/part-0000
+    - chunk-0137/part-0000
+    - chunk-0138/part-0000
+    - chunk-0139/part-0000
+    - chunk-0140/part-0000
+    - chunk-0141/part-0000
+    - chunk-0142/part-0000
+    - chunk-0143/part-0000
+    - chunk-0144/part-0000
+    - chunk-0145/part-0000
+    - chunk-0146/part-0000
+    - chunk-0147/part-0000
+    - chunk-0148/part-0000
+    - chunk-0149/part-0000
+    - chunk-0150/part-0000
+    - chunk-0151/part-0000
+    - chunk-0152/part-0000
+    - chunk-0153/part-0000
+    - chunk-0154/part-0000
+    - chunk-0155/part-0000
+    - chunk-0156/part-0000
+    - chunk-0157/part-0000
+    - chunk-0158/part-0000
+    - chunk-0159/part-0000
+    - chunk-0160/part-0000
+    - chunk-0161/part-0000
+    - chunk-0162/part-0000
+    - chunk-0163/part-0000
+    - chunk-0164/part-0000
+    - chunk-0165/part-0000
+    - chunk-0166/part-0000
+    - chunk-0167/part-0000
+    - chunk-0168/part-0000
+    - chunk-0169/part-0000
+    - chunk-0170/part-0000
+    - chunk-0171/part-0000
+    - chunk-0172/part-0000
+    - chunk-0173/part-0000
+    - chunk-0174/part-0000
+    - chunk-0175/part-0000
+    - chunk-0176/part-0000
+    - chunk-0177/part-0000
+    - chunk-0178/part-0000
+    - chunk-0179/part-0000
+    - chunk-0180/part-0000
+    - chunk-0181/part-0000
+    - chunk-0182/part-0000
+    - chunk-0183/part-0000
+    - chunk-0184/part-0000
+    - chunk-0185/part-0000
+    - chunk-0186/part-0000
+    - chunk-0187/part-0000
+    - chunk-0188/part-0000
+    - chunk-0189/part-0000
+    - chunk-0190/part-0000
+    - chunk-0191/part-0000
+    - chunk-0192/part-0000
+    - chunk-0193/part-0000
+    - chunk-0194/part-0000
+    - chunk-0195/part-0000
+    - chunk-0196/part-0000
+    - chunk-0197/part-0000
+    - chunk-0198/part-0000
+    - chunk-0199/part-0000
+    - chunk-0200/part-0000
+    - chunk-0201/part-0000
+    - chunk-0202/part-0000
+    - chunk-0203/part-0000
+    - chunk-0204/part-0000
+    - chunk-0205/part-0000
+    - chunk-0206/part-0000
+    - chunk-0207/part-0000
+    - chunk-0208/part-0000
+    - chunk-0209/part-0000
+    - chunk-0210/part-0000
+    - chunk-0211/part-0000
+    - chunk-0212/part-0000
+    - chunk-0213/part-0000
+    - chunk-0214/part-0000
+    - chunk-0215/part-0000
+    - chunk-0216/part-0000
+    - chunk-0217/part-0000
+    - chunk-0218/part-0000
+    - chunk-0219/part-0000
+    - chunk-0220/part-0000
+    - chunk-0221/part-0000
+    - chunk-0222/part-0000
+    - chunk-0223/part-0000
+    - chunk-0224/part-0000
+    - chunk-0225/part-0000
+    - chunk-0226/part-0000
+    - chunk-0227/part-0000
+    - chunk-0228/part-0000
+    - chunk-0229/part-0000
+    - chunk-0230/part-0000
+    - chunk-0231/part-0000
+    - chunk-0232/part-0000
+    - chunk-0233/part-0000
+    - chunk-0234/part-0000
+    - chunk-0235/part-0000
+    - chunk-0236/part-0000
+    - chunk-0237/part-0000
+    - chunk-0238/part-0000
+    - chunk-0239/part-0000
+    - chunk-0240/part-0000
+    - chunk-0241/part-0000
+    - chunk-0242/part-0000
+    - chunk-0243/part-0000
+    - chunk-0244/part-0000
+    - chunk-0245/part-0000
+    - chunk-0246/part-0000
+    - chunk-0247/part-0000
+    - chunk-0248/part-0000
+    - chunk-0249/part-0000
+    - chunk-0250/part-0000
+    - chunk-0251/part-0000
+    - chunk-0252/part-0000
+    - chunk-0253/part-0000
+    - chunk-0254/part-0000
+    - chunk-0255/part-0000
+    - chunk-0256/part-0000
+    - chunk-0257/part-0000
+    - chunk-0258/part-0000
+    - chunk-0259/part-0000
+    - chunk-0260/part-0000
+    - chunk-0261/part-0000
+    - chunk-0262/part-0000
+    - chunk-0263/part-0000
+    - chunk-0264/part-0000
+    - chunk-0265/part-0000
+    - chunk-0266/part-0000
+    - chunk-0267/part-0000
+    - chunk-0268/part-0000
+    - chunk-0269/part-0000
+    - chunk-0270/part-0000
+    - chunk-0271/part-0000
+    - chunk-0272/part-0000
+    - chunk-0273/part-0000
+    - chunk-0274/part-0000
+    - chunk-0275/part-0000
+    - chunk-0276/part-0000
+    - chunk-0277/part-0000
+    - chunk-0278/part-0000
+    - chunk-0279/part-0000
+    - chunk-0280/part-0000
+    - chunk-0281/part-0000
+    - chunk-0282/part-0000
+    - chunk-0283/part-0000
+    - chunk-0284/part-0000
+    - chunk-0285/part-0000
+    - chunk-0286/part-0000
+    - chunk-0287/part-0000
+    - chunk-0288/part-0000
+    - chunk-0289/part-0000
+    - chunk-0290/part-0000
+    - chunk-0291/part-0000
+    - chunk-0292/part-0000
+    - chunk-0293/part-0000
+    - chunk-0294/part-0000
+    - chunk-0295/part-0000
+    - chunk-0296/part-0000
+    - chunk-0297/part-0000
+    - chunk-0298/part-0000
+    - chunk-0299/part-0000
+    - chunk-0300/part-0000
+    - chunk-0301/part-0000
+    - chunk-0302/part-0000
+    - chunk-0303/part-0000
+    - chunk-0304/part-0000
+    - chunk-0305/part-0000
+    - chunk-0306/part-0000
+    - chunk-0307/part-0000
+    - chunk-0308/part-0000
+    - chunk-0309/part-0000
+    - chunk-0310/part-0000
+    - chunk-0311/part-0000
+    - chunk-0312/part-0000
+    - chunk-0313/part-0000
+    - chunk-0314/part-0000
+    - chunk-0315/part-0000
+    - chunk-0316/part-0000
+    - chunk-0317/part-0000
+    - chunk-0318/part-0000
+    - chunk-0319/part-0000
+    - chunk-0320/part-0000
+    - chunk-0321/part-0000
+    - chunk-0322/part-0000
+    - chunk-0323/part-0000
+    - chunk-0324/part-0000
+    - chunk-0325/part-0000
+    - chunk-0326/part-0000
+    - chunk-0327/part-0000
+    - chunk-0328/part-0000
+    - chunk-0329/part-0000
+    - chunk-0330/part-0000
+    - chunk-0331/part-0000
+    - chunk-0332/part-0000
+    - chunk-0333/part-0000
+    - chunk-0334/part-0000
+    - chunk-0335/part-0000
+    - chunk-0336/part-0000
+    - chunk-0337/part-0000
+    - chunk-0338/part-0000
+    - chunk-0339/part-0000
+    - chunk-0340/part-0000
+    - chunk-0341/part-0000
+    - chunk-0342/part-0000
+    - chunk-0343/part-0000
+    - chunk-0344/part-0000
+    - chunk-0345/part-0000
+    - chunk-0346/part-0000
+    - chunk-0347/part-0000
+    - chunk-0348/part-0000
+    - chunk-0349/part-0000
+    - chunk-0350/part-0000
+    - chunk-0351/part-0000
+    - chunk-0352/part-0000
+    - chunk-0353/part-0000
+    - chunk-0354/part-0000
+    - chunk-0355/part-0000
+    - chunk-0356/part-0000
+    - chunk-0357/part-0000
+    - chunk-0358/part-0000
+    - chunk-0359/part-0000
+    - chunk-0360/part-0000
+    - chunk-0361/part-0000
+    - chunk-0362/part-0000
+    - chunk-0363/part-0000
+    - chunk-0364/part-0000
+    - chunk-0365/part-0000
+    - chunk-0366/part-0000
+    - chunk-0367/part-0000
+    - chunk-0368/part-0000
+    - chunk-0369/part-0000
+    - chunk-0370/part-0000
+    - chunk-0371/part-0000
+    - chunk-0372/part-0000
+    - chunk-0373/part-0000
+    - chunk-0374/part-0000
+    - chunk-0375/part-0000
+    - chunk-0376/part-0000
+    - chunk-0377/part-0000
+    - chunk-0378/part-0000
+    - chunk-0379/part-0000
+    - chunk-0380/part-0000
+    - chunk-0381/part-0000
+    - chunk-0382/part-0000
+    - chunk-0383/part-0000
+    - chunk-0384/part-0000
+    - chunk-0385/part-0000
+    - chunk-0386/part-0000
+    - chunk-0387/part-0000
+    - chunk-0388/part-0000
+    - chunk-0389/part-0000
+    - chunk-0390/part-0000
+    - chunk-0391/part-0000
+    - chunk-0392/part-0000
+    - chunk-0393/part-0000
+    - chunk-0394/part-0000
+    - chunk-0395/part-0000
+    - chunk-0396/part-0000
+    - chunk-0397/part-0000

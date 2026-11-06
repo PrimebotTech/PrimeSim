@@ -1,0 +1,9 @@
+# @package _global_
+# The files the world model loads, each by its path: the Wan2.2-TI2V-5B text
+# encoder, VAE and tokenizer, and the PrimeSim DiT weights.
+
+model:
+  text_encoder_path: checkpoints/models_t5_umt5-xxl-enc-bf16.pth
+  vae_path: checkpoints/Wan2.2_VAE.pth
+  tokenizer_path: checkpoints/google/umt5-xxl
+  checkpoint_path: ???   # PrimeSim DiT weights (midtrain or stage 1-3); set per launch

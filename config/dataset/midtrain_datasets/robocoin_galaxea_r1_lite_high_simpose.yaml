@@ -1,0 +1,197 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      action: action
+      observation.state: state
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      action: action
+      observation.state: state
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - R1_Lite_boil_water_in_a_kettle
+    - R1_Lite_catch_the_water
+    - R1_Lite_clean_the_floor
+    - R1_Lite_clean_the_sink
+    - R1_Lite_clean_toilet
+    - R1_Lite_connect_the_router_cable
+    - R1_Lite_cook_a_meal
+    - R1_Lite_cover_the_pot_lid
+    - R1_Lite_dispose_of_leftover_food
+    - R1_Lite_drawer_storage_hair_dryer
+    - R1_Lite_fold_clothes
+    - R1_Lite_garbage_disposal
+    - R1_Lite_hang_clothes
+    - R1_Lite_make_a_landline_call
+    - R1_Lite_make_breakfast
+    - R1_Lite_make_tea
+    - R1_Lite_make_the_bed
+    - R1_Lite_open_and_close_curtains
+    - R1_Lite_open_and_close_microwave_oven
+    - R1_Lite_open_and_close_nightstand_door
+    - R1_Lite_open_and_close_nightstand_drawer
+    - R1_Lite_open_and_close_the_freezer_door
+    - R1_Lite_open_the_food_pan
+    - R1_Lite_opening_and_closing_aalcony_sliding_doors
+    - R1_Lite_pick_up_and_store_items
+    - R1_Lite_place_the_dress_shirt_on_the_hanger
+    - R1_Lite_plug_the_socket
+    - R1_Lite_pour_water
+    - R1_Lite_put_on_a_garbage_bag
+    - R1_Lite_put_slippers_into_floor_standing_shoe_cabinet
+    - R1_Lite_put_the_pillow_on_the_bed
+    - R1_Lite_put_the_shoes_into_the_shoe_box
+    - R1_Lite_put_the_tableware_into_the_cupboard
+    - R1_Lite_sliding_chair
+    - R1_Lite_storage_of_toiletries
+    - R1_Lite_switch_labels
+    - R1_Lite_switch_on_and_off_the_central_air_conditioning
+    - R1_Lite_tableware_arrangement
+    - R1_Lite_tableware_cleaning
+    - R1_Lite_take_and_place_the_portable_power_bank
+    - R1_Lite_take_and_put_away_garden_stuff
+    - R1_Lite_take_and_put_away_garden_stuff_a
+    - R1_Lite_take_and_put_away_items
+    - R1_Lite_take_and_put_the_bowl
+    - R1_Lite_take_clothes_out_of_the_washing_machine
+    - R1_Lite_take_or_store_plates
+    - R1_Lite_tea_service_table_setting
+    - R1_Lite_throw_out_the_trash
+    - R1_Lite_tidy_up_toiletries
+    - R1_Lite_wash_the_tableware
+    - R1_Lite_washing_board
+    - R1_Lite_wipe_the_table
+  action_sources:
+    - action
+    - eef_sim_pose_action
+    - gripper_open_scale_action
+  fps: ${fps}

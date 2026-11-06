@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "primesim"
+version = "0.1.0"
+description = "PrimeSim: an action-conditioned multiview world model on Wan2.2-TI2V-5B"
+readme = "README.md"
+requires-python = ">=3.12"
+# The versions the released checkpoints were trained with; torch / torchvision /
+# torchcodec must stay a matching set.
+dependencies = [
+    # core
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+    "numpy==2.2.6",
+    "einops==0.8.2",
+    "safetensors==0.7.0",
+    "scipy==1.18.0",
+    "tqdm==4.67.3",
+    "typing_extensions==4.15.0",
+    "pillow==12.1.1",
+    # training
+    "accelerate==1.13.0",
+    "peft==0.18.1",               # LoRA fine-tuning (lora_* trainer options)
+    "hydra-core==1.3.2",
+    "omegaconf==2.3.0",
+    "mmengine==0.10.7",           # registries for datasets, transforms and losses
+    # text encoder (umt5-xxl)
+    "transformers==4.57.6",
+    "tokenizers==0.22.2",
+    "sentencepiece==0.2.1",
+    "protobuf==6.33.5",
+    "ftfy==6.3.1",
+    "regex==2026.2.28",
+    # data: LeRobot v3 datasets
+    "lerobot==0.4.4",
+    "datasets==4.8.5",
+    "pandas==2.3.3",
+    "pyarrow==23.0.1",
+    "torchcodec==0.5",            # video decoding (lerobot's backend)
+    "av==15.1.0",
+    # logging and metrics
+    "wandb==0.24.2",
+    "moviepy==1.0.3",             # wandb.Video encoding of the sample videos
+    "imageio==2.37.2",
+    "imageio-ffmpeg==0.6.0",
+    "torchmetrics==1.9.0",        # SSIM / UIQI / LPIPS on the sample videos
+]
+
+[project.optional-dependencies]
+# Faster attention, picked up automatically when installed.
+flash-attn = ["flash-attn"]
+sage = ["sageattention"]
+xformers = ["xformers"]
+
+[tool.setuptools.packages.find]
+include = ["primesim*"]

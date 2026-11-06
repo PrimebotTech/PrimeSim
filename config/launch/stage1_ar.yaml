@@ -1,0 +1,32 @@
+# @package _global_
+# Stage 1: turn the pretrained (bidirectional) world model autoregressive. The DiT
+# becomes chunk-causal (3 latent frames per chunk) and is trained with diffusion
+# forcing and teacher forcing (TeacherForcingLoss), starting from the midtrain
+# checkpoint. Sample videos are generated chunk by chunk.
+
+defaults:
+  - ../model: primesim.yaml
+  - ../trainer: sft_full.yaml
+  - ../loss: teacher_forcing.yaml
+  - _self_
+
+run_name: stage1_autoregressive   # checkpoints -> models/stage1_autoregressive
+
+train_module:
+  causal: true
+
+action_dim: 31                    # = SLOT_OFFSETS total; see ../dataset/midtrain.yaml
+state_dim: 31                     # unused by this path, kept equal to action_dim
+max_train_steps: 3_000_000
+save_steps: 50_000
+save_frame_steps: 10_000
+img_height: 192
+img_width: 256
+fps: 10
+num_frames: 33                    # 9 latent frames = 3 causal chunks
+action_len: 32
+batch_size: 1
+
+# The pretrained world model to start from.
+model:
+  checkpoint_path: /path/to/checkpoint

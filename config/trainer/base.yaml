@@ -1,0 +1,50 @@
+# @package _global_
+# Shared by the trainers (sft_full: fine-tuning and stage 1, distill: stage 2, dmd: stage 3).
+
+output:
+  output_path: ./models/${run_name}
+  remove_prefix_in_ckpt: pipe.dit.
+  save_steps: ${save_steps}
+gradient:
+  gradient_accumulation_steps: 1
+
+wandb:
+  wandb_project: "wan-wm"
+  wandb_mode: offline
+  wandb_run_name: null
+
+logging:
+  save_frame_steps: ${save_frame_steps}
+  log_steps: 10
+
+validation:
+  val_steps: 1000
+  val_batches: 50
+  val_seed: 12345
+  val_img_steps: 0
+  val_img_batches: 0
+
+model_logger:
+  type: ModelLogger
+  output_path: ${output.output_path}
+  remove_prefix_in_ckpt: ${output.remove_prefix_in_ckpt}
+
+trainer:
+  val_steps: ${validation.val_steps}
+  val_batches: ${validation.val_batches}
+  val_seed: ${validation.val_seed}
+  val_img_steps: ${validation.val_img_steps}
+  val_img_batches: ${validation.val_img_batches}
+  save_frame_steps: ${logging.save_frame_steps}
+  find_unused_parameters: False
+  wandb_project: ${wandb.wandb_project}
+  wandb_mode: ${wandb.wandb_mode}
+  wandb_run_name: ${wandb.wandb_run_name}
+  gradient_accumulation_steps: ${gradient.gradient_accumulation_steps}
+  save_steps: ${output.save_steps}
+  num_epochs: ${num_epochs}
+  fps: ${fps}
+  log_steps: ${logging.log_steps}
+  max_train_steps: ${max_train_steps}
+  lr_warmup_steps: ${lr_warmup_steps}
+  lr_min_ratio: ${lr_min_ratio}

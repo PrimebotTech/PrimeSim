@@ -1,0 +1,136 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.state: state_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateHyEmbodied
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vec: state
+  - type: GetActionHyEmbodied
+    state_len: 1
+    action_len: ${action_len}
+    pad_key: observation.state_is_pad
+    key_mapper:
+      - state_vec: ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.state: state_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateHyEmbodied
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vec: state
+  - type: GetActionHyEmbodied
+    state_len: 1
+    action_len: ${action_len}
+    pad_key: observation.state_is_pad
+    key_mapper:
+      - state_vec: ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - observation.state
+  action_from_state: true
+  fps: ${fps}
+  repo_ids:
+    - table_000
+    - table_001
+    - table_002
+    - table_003
+    - table_004
+    - table_005
+    - table_006
+    - table_007
+    - table_008
+    - table_009
+    - table_010
+    - table_011
+    - table_012
+    - table_013
+    - table_014
+    - table_015
+    - table_016
+    - table_017
+    - table_018
+    - table_019
+    - table_020
+    - table_021

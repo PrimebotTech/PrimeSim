@@ -1,0 +1,151 @@
+# @package _global_
+
+# X-embodiment unified state/action layout -- 31 dims, identical for every robot.
+
+#    slice     width  contents
+#    [ 0: 7]     7    left  eef pose   xyz(3) + quat(4)
+#    [ 7: 8]     1    left  gripper
+#    [ 8:15]     7    right eef pose   xyz(3) + quat(4)
+#    [15:16]     1    right gripper
+#    [16:20]     4    torso
+#    [20:23]     3    head  (or neck)
+#    [23:28]     5    waist (or body)
+#    [28:31]     3    chassis  planar base velocity (vx, vy, yaw rate)
+#                --
+#                31
+
+defaults:
+  - midtrain_datasets/robocoin_agilex_cobot_magic@robocoin1
+  - midtrain_datasets/robocoin_agilex_cobot_magic_front_chest@robocoin2
+  - midtrain_datasets/robocoin_agilex_decoupled_magic_hamburger_v30@robocoin3
+  - midtrain_datasets/robocoin_ai2_alphabot2_v30@robocoin4
+  - midtrain_datasets/robocoin_aloha@robocoin5
+  - midtrain_datasets/robocoin_alpha_bot_2@robocoin6
+  - midtrain_datasets/robocoin_cobot_magic@robocoin7
+  - midtrain_datasets/robocoin_decoupled_magic_front_simpose@robocoin8
+  - midtrain_datasets/robocoin_decoupled_magic_high_dupsuffix_fps50_simpose@robocoin9
+  - midtrain_datasets/robocoin_decoupled_magic_high_fps50_simpose@robocoin10
+  - midtrain_datasets/robocoin_galaxea_r1_lite_headlr_simpose@robocoin11
+  - midtrain_datasets/robocoin_galaxea_r1_lite_high_simpose@robocoin12
+  - midtrain_datasets/robocoin_galaxea_r1_lite_highlr_simpose@robocoin13
+  - midtrain_datasets/robocoin_realman_rmc_aidal_head_v30@robocoin14
+  - midtrain_datasets/robocoin_realman_rmc_aidal_v30@robocoin15
+  - midtrain_datasets/robocoin_yinhe_galbot_g1_simpose@robocoin16
+  - midtrain_datasets/agibot_world@agibot_world
+  - midtrain_datasets/robomind_agilex@robomind1
+  - midtrain_datasets/robomind_agilex_mobile@robomind2
+  - midtrain_datasets/robomind_ark@robomind3
+  - midtrain_datasets/robomind_ark_mobile@robomind4
+  - midtrain_datasets/droid@droid
+  - midtrain_datasets/challenge2026@challenge2026
+  - midtrain_datasets/robocasa_v30@robocasa
+  - midtrain_datasets/interndata_m1_agilex@interndata1
+  - midtrain_datasets/interndata_m1_franka@interndata2
+  - midtrain_datasets/interndata_m1_robotiq@interndata3
+  - midtrain_datasets/interndata_a1_genie1_sim@interndata_a1_sim
+  - midtrain_datasets/interndata_a1_genie1_real@interndata_a1_real
+  - midtrain_datasets/interndata_a1_franka_tcp095_articulation_sim@a1_franka095_art
+  - midtrain_datasets/interndata_a1_franka_tcp095_basic_sim@a1_franka095_basic
+  - midtrain_datasets/interndata_a1_franka_tcp095_pick_and_place_sim@a1_franka095_pnp
+  - midtrain_datasets/interndata_a1_franka_tcp145_basic_sim@a1_franka145_basic
+  - midtrain_datasets/interndata_a1_franka_tcp145_long_horizon_sim@a1_franka145_lh
+  - midtrain_datasets/interndata_a1_franka_tcp145_pick_and_place_sim@a1_franka145_pnp
+  - midtrain_datasets/interndata_a1_lift2_articulation_sim@a1_lift2_art
+  - midtrain_datasets/interndata_a1_lift2_basic_sim@a1_lift2_basic
+  - midtrain_datasets/interndata_a1_lift2_long_horizon_sim@a1_lift2_lh
+  - midtrain_datasets/interndata_a1_lift2_pick_and_place_sim@a1_lift2_pnp
+  - midtrain_datasets/interndata_a1_split_aloha_articulation_sim@a1_aloha_art
+  - midtrain_datasets/interndata_a1_split_aloha_basic_sim@a1_aloha_basic
+  - midtrain_datasets/interndata_a1_split_aloha_long_horizon_sim@a1_aloha_lh
+  - midtrain_datasets/interndata_a1_split_aloha_pick_and_place_sim@a1_aloha_pnp
+  - midtrain_datasets/galaxea_openworld@galaxea
+  - midtrain_datasets/hy_embodied_vla@hy_vla
+  - midtrain_datasets/bridge@bridge
+  - midtrain_datasets/kai0@kai0
+  - midtrain_datasets/robotwin@robotwin
+  - midtrain_datasets/libero@libero
+  - midtrain_datasets/mimicgen@mimicgen
+  - midtrain_datasets/rt1@rt1
+  - midtrain_datasets/xr2@xr2
+  - midtrain_datasets/hifi_umi_2k@hifi_umi_2k
+  - midtrain_datasets/agibot_world_2026_l1_static@agibot2026_l1s
+  - midtrain_datasets/agibot_world_2026_l1_mobile@agibot2026_l1m
+  - midtrain_datasets/agibot_world_2026_l2@agibot2026_l2
+  - midtrain_datasets/agibot_world_2026_l3@agibot2026_l3
+  - _self_
+
+train_ratio: 0.99
+valid_ratio: 0.01               # explicit now that the datamodule honours it
+
+datasets:
+  data_loader:
+    type: MidtrainLeRobotDataModuleV3
+    dataset_list:
+      - ${a1_franka095_art.dataset}
+      - ${a1_franka095_basic.dataset}
+      - ${a1_franka095_pnp.dataset}
+      - ${a1_franka145_basic.dataset}
+      - ${a1_franka145_lh.dataset}
+      - ${a1_franka145_pnp.dataset}
+      - ${a1_lift2_art.dataset}
+      - ${a1_lift2_basic.dataset}
+      - ${a1_lift2_lh.dataset}
+      - ${a1_lift2_pnp.dataset}
+      - ${a1_aloha_art.dataset}
+      - ${a1_aloha_basic.dataset}
+      - ${a1_aloha_lh.dataset}
+      - ${a1_aloha_pnp.dataset}
+      - ${galaxea.dataset}
+      - ${hy_vla.dataset}
+      - ${bridge.dataset}
+      - ${kai0.dataset}
+      - ${robotwin.dataset}
+      - ${libero.dataset}
+      - ${mimicgen.dataset}
+      - ${rt1.dataset}
+      - ${xr2.dataset}
+      - ${hifi_umi_2k.dataset}
+      - ${agibot2026_l1s.dataset}
+      - ${agibot2026_l1m.dataset}
+      - ${agibot2026_l2.dataset}
+      - ${agibot2026_l3.dataset}
+      - ${robocoin1.dataset}
+      - ${robocoin2.dataset}
+      - ${robocoin3.dataset}
+      - ${robocoin4.dataset}
+      - ${robocoin5.dataset}
+      - ${robocoin6.dataset}
+      - ${robocoin7.dataset}
+      - ${robocoin8.dataset}
+      - ${robocoin9.dataset}
+      - ${robocoin10.dataset}
+      - ${robocoin11.dataset}
+      - ${robocoin12.dataset}
+      - ${robocoin13.dataset}
+      - ${robocoin14.dataset}
+      - ${robocoin15.dataset}
+      - ${robocoin16.dataset}
+      - ${agibot_world.dataset}
+      - ${robomind1.dataset}
+      - ${robomind2.dataset}
+      - ${robomind3.dataset}
+      - ${robomind4.dataset}
+      - ${droid.dataset}
+      - ${challenge2026.dataset}
+      - ${robocasa.dataset}
+      - ${interndata1.dataset}
+      - ${interndata2.dataset}
+      - ${interndata3.dataset}
+      - ${interndata_a1_sim.dataset}
+      - ${interndata_a1_real.dataset}
+    batch_size: ${batch_size}
+    num_workers: 2
+    num_frames: ${num_frames}
+    fps: ${fps}
+    action_dim: ${action_dim}
+    prefetch_factor: 2
+    train_ratio: ${train_ratio}
+    valid_ratio: ${valid_ratio}
+    stride: 50
+    seed: ${seed}
+    decoder_cache_limit: 16

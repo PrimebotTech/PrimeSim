@@ -1,0 +1,126 @@
+# X-VLA soft-fold (cloth folding): 1542 episodes, 2,852,512 frames at 20 Hz, bimanual,
+# three cameras -- cam_high, cam_left_wrist, cam_right_wrist -> img_1 / img_2 / img_3,
+# the same order robotwin.yaml maps its head and wrist cameras.
+#
+# The eef poses are RECORDED in observation.state (no FK), and the joint-space `action`
+# column is exactly the next frame's qpos, so the action is the state one row ahead --
+# the Bridge pattern. See _XVLASoftFoldWriter for the column layout and how it was checked.
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.state: state_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateXVLASoftFold
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionXVLASoftFold
+    state_len: 1
+    action_len: ${action_len}
+    pad_key: observation.state_is_pad
+    key_mapper:
+      - ("state_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: fold the cloth
+  - type: TransformPrompt
+    default_prompt: fold the cloth
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.state: state_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateXVLASoftFold
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionXVLASoftFold
+    state_len: 1
+    action_len: ${action_len}
+    pad_key: observation.state_is_pad
+    key_mapper:
+      - ("state_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: fold the cloth
+  - type: TransformPrompt
+    default_prompt: fold the cloth
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - xvla-soft-fold
+  action_sources:
+    - observation.state
+  # The action rows are state rows 1..N of the same window, so the state column has to
+  # keep the full frame window instead of being narrowed to the action rows.
+  action_from_state: true
+  # 20 Hz native; the global 10 is an integer divisor, so the shared grid works: every
+  # second native frame, 33 frames over 3.2 s.
+  fps: ${fps}

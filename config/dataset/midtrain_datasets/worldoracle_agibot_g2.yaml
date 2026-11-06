@@ -1,0 +1,146 @@
+# WorldOracle AgiBot G2: four tasks, split into 20 shards each by the converter.
+#
+# Produced by:  scripts/run_worldoracle_convert.sh with N_GROUPS=5
+#               i.e. worldoracle_to_lerobot.py --shards 4 --n-groups 5
+#               five server tasks, shard ids 0..19 per task, 80 repos total
+# Root:         /path/to/root/dir/worldoracle_agibot_g2_<task>_s<i>/
+#               LeRobot v3.0, native 30 fps, head 640x400, wrists 640x528.
+#
+# The shard count is tied to the number of nodes, not to the data: shard i takes
+# episodes i::20, so shards 0..19 cover the corpus exactly once. Running with
+# N_GROUPS=6 instead would produce 24 shards and a different repo list, and the two
+# schemes are NOT interchangeable -- a 24-shard s5 holds different episodes from a
+# 20-shard s5. If the node count changes, regenerate repo_ids with:
+#   ls /path/to/root/dir | sort | sed 's/^/    - /'
+#
+# Action layout, 52-dim (GetActionWorldOracle):
+#   [0:2] gripper, [2:8] eef position, [8:16] eef quaternion, [16:30] arm joints,
+#   [30:33] head, [33:38] waist, [38:44] chassis velocity, [44:52] reference pose
+# State layout, 208-dim (GetStateWorldOracle):
+#   [0:2] gripper, [26:32] eef position, [56:64] eef quaternion (unit norm, XYZW),
+#   [120:123] head, [123:128] waist. No body velocity is recorded, so the chassis
+#   slot stays empty and masked: AgiBot G2 actuates only the two arms.
+
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      action: action_vector
+      observation.state: state_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateWorldOracle
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+  - type: GetActionWorldOracle
+    action_len: ${action_len}
+    key_mapper:
+      - action_vector: ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the manipulation task.
+  - type: TransformPrompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+  - type: ImgNormalize
+
+valid_pipeline: ${.train_pipeline}
+
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - worldoracle_agibot_g2_hangtowel_s0
+    - worldoracle_agibot_g2_hangtowel_s1
+    - worldoracle_agibot_g2_hangtowel_s2
+    - worldoracle_agibot_g2_hangtowel_s3
+    - worldoracle_agibot_g2_hangtowel_s4
+    - worldoracle_agibot_g2_hangtowel_s5
+    - worldoracle_agibot_g2_hangtowel_s6
+    - worldoracle_agibot_g2_hangtowel_s7
+    - worldoracle_agibot_g2_hangtowel_s8
+    - worldoracle_agibot_g2_hangtowel_s9
+    - worldoracle_agibot_g2_hangtowel_s10
+    - worldoracle_agibot_g2_hangtowel_s11
+    - worldoracle_agibot_g2_hangtowel_s12
+    - worldoracle_agibot_g2_hangtowel_s13
+    - worldoracle_agibot_g2_hangtowel_s14
+    - worldoracle_agibot_g2_hangtowel_s15
+    - worldoracle_agibot_g2_hangtowel_s16
+    - worldoracle_agibot_g2_hangtowel_s17
+    - worldoracle_agibot_g2_hangtowel_s18
+    - worldoracle_agibot_g2_hangtowel_s19
+    - worldoracle_agibot_g2_pickfruit_s0
+    - worldoracle_agibot_g2_pickfruit_s1
+    - worldoracle_agibot_g2_pickfruit_s2
+    - worldoracle_agibot_g2_pickfruit_s3
+    - worldoracle_agibot_g2_pickfruit_s4
+    - worldoracle_agibot_g2_pickfruit_s5
+    - worldoracle_agibot_g2_pickfruit_s6
+    - worldoracle_agibot_g2_pickfruit_s7
+    - worldoracle_agibot_g2_pickfruit_s8
+    - worldoracle_agibot_g2_pickfruit_s9
+    - worldoracle_agibot_g2_pickfruit_s10
+    - worldoracle_agibot_g2_pickfruit_s11
+    - worldoracle_agibot_g2_pickfruit_s12
+    - worldoracle_agibot_g2_pickfruit_s13
+    - worldoracle_agibot_g2_pickfruit_s14
+    - worldoracle_agibot_g2_pickfruit_s15
+    - worldoracle_agibot_g2_pickfruit_s16
+    - worldoracle_agibot_g2_pickfruit_s17
+    - worldoracle_agibot_g2_pickfruit_s18
+    - worldoracle_agibot_g2_pickfruit_s19
+    - worldoracle_agibot_g2_pourwater_s0
+    - worldoracle_agibot_g2_pourwater_s1
+    - worldoracle_agibot_g2_pourwater_s2
+    - worldoracle_agibot_g2_pourwater_s3
+    - worldoracle_agibot_g2_pourwater_s4
+    - worldoracle_agibot_g2_pourwater_s5
+    - worldoracle_agibot_g2_pourwater_s6
+    - worldoracle_agibot_g2_pourwater_s7
+    - worldoracle_agibot_g2_pourwater_s8
+    - worldoracle_agibot_g2_pourwater_s9
+    - worldoracle_agibot_g2_pourwater_s10
+    - worldoracle_agibot_g2_pourwater_s11
+    - worldoracle_agibot_g2_pourwater_s12
+    - worldoracle_agibot_g2_pourwater_s13
+    - worldoracle_agibot_g2_pourwater_s14
+    - worldoracle_agibot_g2_pourwater_s15
+    - worldoracle_agibot_g2_pourwater_s16
+    - worldoracle_agibot_g2_pourwater_s17
+    - worldoracle_agibot_g2_pourwater_s18
+    - worldoracle_agibot_g2_pourwater_s19
+    - worldoracle_agibot_g2_pulldrawer_s0
+    - worldoracle_agibot_g2_pulldrawer_s1
+    - worldoracle_agibot_g2_pulldrawer_s2
+    - worldoracle_agibot_g2_pulldrawer_s3
+    - worldoracle_agibot_g2_pulldrawer_s4
+    - worldoracle_agibot_g2_pulldrawer_s5
+    - worldoracle_agibot_g2_pulldrawer_s6
+    - worldoracle_agibot_g2_pulldrawer_s7
+    - worldoracle_agibot_g2_pulldrawer_s8
+    - worldoracle_agibot_g2_pulldrawer_s9
+    - worldoracle_agibot_g2_pulldrawer_s10
+    - worldoracle_agibot_g2_pulldrawer_s11
+    - worldoracle_agibot_g2_pulldrawer_s12
+    - worldoracle_agibot_g2_pulldrawer_s13
+    - worldoracle_agibot_g2_pulldrawer_s14
+    - worldoracle_agibot_g2_pulldrawer_s15
+    - worldoracle_agibot_g2_pulldrawer_s16
+    - worldoracle_agibot_g2_pulldrawer_s17
+    - worldoracle_agibot_g2_pulldrawer_s18
+    - worldoracle_agibot_g2_pulldrawer_s19
+  action_sources:
+    - action
+  fps: ${fps}

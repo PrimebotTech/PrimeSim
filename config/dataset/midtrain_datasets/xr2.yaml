@@ -1,0 +1,132 @@
+# XR2 / X2W -- /path/to/root/dir
+#
+# State and action are the same 89-wide column layout, mapped into the shared 28-dim
+# x-embodiment layout by GetStateX2W / GetActionX2W (see loading_x_embodiment.py for
+# the column table and for why the chassis slot is opt-in).
+
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.x2w_camera_head_realsense_compressed: img_1
+      observation.images.x2w_camera_left_wrist_zedxonegs_rgb_raw_image_compressed: img_2
+      observation.images.x2w_camera_right_wrist_zedxonegs_rgb_raw_image_compressed: img_3
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateX2W
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionX2W
+    action_len: ${action_len}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.x2w_camera_head_realsense_compressed: img_1
+      observation.images.x2w_camera_left_wrist_zedxonegs_rgb_raw_image_compressed: img_2
+      observation.images.x2w_camera_right_wrist_zedxonegs_rgb_raw_image_compressed: img_3
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateX2W
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionX2W
+    action_len: ${action_len}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  action_from_state: false
+  fps: ${fps}
+  repo_ids:
+    - fold_cloth_batch2_train
+    - full_task_batch1_train
+    - partial_task_batch3_train
+    - partial_task_batch4_train

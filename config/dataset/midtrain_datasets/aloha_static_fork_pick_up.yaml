@@ -1,0 +1,137 @@
+# Static ALOHA, aloha_static_fork_pick_up: 100 episodes x 600 frames at 50 Hz, two
+# Interbotix vx300s arms, four cameras. The model takes three: cam_high -> img_1 and the
+# two wrists -> img_2 / img_3, the order robotwin.yaml and xvla_soft_fold.yaml use for
+# their head and wrist cameras. cam_low is not used.
+#
+# The eef columns are not shipped by the source dataset: scripts/add_eef_poses_aloha.py
+# added them by FK, each arm in its own base frame. Grippers come from the joint vectors.
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.states.eef_fk.data: eef_state
+      observation.state: state_vec
+      actions.eef_fk.data: eef_action
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAloha
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_state", "state_vec"): state
+  - type: GetActionAloha
+    action_len: ${action_len}
+    pad_key: action_is_pad
+    key_mapper:
+      - ("eef_action", "action_vec"): ("action", "action_mask")
+  # The third source is the gripper-stats column: state_vec for BOTH outputs, because
+  # the shipped action stats carry the episode-41 dropout's -2.476 as the left gripper
+  # min.
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Pick up the fork and place it on the plate.
+  - type: TransformPrompt
+    default_prompt: Pick up the fork and place it on the plate.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_high: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.states.eef_fk.data: eef_state
+      observation.state: state_vec
+      actions.eef_fk.data: eef_action
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAloha
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_state", "state_vec"): state
+  - type: GetActionAloha
+    action_len: ${action_len}
+    pad_key: action_is_pad
+    key_mapper:
+      - ("eef_action", "action_vec"): ("action", "action_mask")
+  # The third source is the gripper-stats column: state_vec for BOTH outputs, because
+  # the shipped action stats carry the episode-41 dropout's -2.476 as the left gripper
+  # min.
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Pick up the fork and place it on the plate.
+  - type: TransformPrompt
+    default_prompt: Pick up the fork and place it on the plate.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - aloha_static_fork_pick_up
+  # Both action-side columns get the action window: the FK'd poses and the joint vector
+  # (grippers, and the dropout check in GetActionAloha).
+  action_sources:
+    - actions.eef_fk.data
+    - action
+  action_from_state: false
+  # 50 Hz native; the global 10 divides it, so every fifth native frame: 33 frames over
+  # 3.2 s of a 12 s episode.
+  fps: ${fps}

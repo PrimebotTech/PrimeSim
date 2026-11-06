@@ -1,0 +1,151 @@
+# InternData-A1, genie1 real tree (robot_type "a2d", LeRobot v3.0, 30 fps).
+#
+# The real tree records joint positions only, so the eef poses here are the *_pose_fk
+# columns added by scripts/add_eef_poses_interndata_a1_genie1.py. They are TCP poses in
+# the root frame -- the same convention as the sim config's tcp_to_robot -- validated
+# against the sim tree (which records joints AND poses) to 0.00017 mm / 0.00003 deg.
+#
+# Two ways this tree differs from sim, both left alone deliberately:
+#   * Single-arm. The left arm is frozen across all 152 episodes (per-dim joint std
+#     sums to 0.06 against the right arm's 2.37), so the left eef slots carry a
+#     near-constant pose. Its columns are still marked filled, which is honest: the
+#     arm is present and reported, it just does not move.
+#   * The state gripper spans 34.8-116.8 while the action gripper is 0-1. Each feature
+#     carries its own norm stats, so the two are normalised independently.
+#
+# head and waist are recorded but constant, and ToRelativeAction differences those
+# slots, so filling them would contribute exactly zero. Left unfilled to match sim.
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.states.left_tcp_to_robot_pose_fk: left_eef_state
+      observation.states.right_tcp_to_robot_pose_fk: right_eef_state
+      observation.states.effector.position: effector_state
+      actions.left_tcp_to_robot_pose_fk: left_eef_action
+      actions.right_tcp_to_robot_pose_fk: right_eef_action
+      actions.effector.position: effector_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    source_cols:
+      left_gripper: [0]
+      right_gripper: [1]
+    key_mapper:
+      - ("left_eef_state", "effector_state", "right_eef_state", "effector_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    source_cols:
+      left_gripper: [0]
+      right_gripper: [1]
+    key_mapper:
+      - ("left_eef_action", "effector_action", "right_eef_action", "effector_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.states.left_tcp_to_robot_pose_fk: left_eef_state
+      observation.states.right_tcp_to_robot_pose_fk: right_eef_state
+      observation.states.effector.position: effector_state
+      actions.left_tcp_to_robot_pose_fk: left_eef_action
+      actions.right_tcp_to_robot_pose_fk: right_eef_action
+      actions.effector.position: effector_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    source_cols:
+      left_gripper: [0]
+      right_gripper: [1]
+    key_mapper:
+      - ("left_eef_state", "effector_state", "right_eef_state", "effector_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    source_cols:
+      left_gripper: [0]
+      right_gripper: [1]
+    key_mapper:
+      - ("left_eef_action", "effector_action", "right_eef_action", "effector_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - "Genie1-Place_Markpen"
+  action_sources:
+    - actions.left_tcp_to_robot_pose_fk
+    - actions.right_tcp_to_robot_pose_fk
+    - actions.effector.position
+  fps: ${fps}

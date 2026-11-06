@@ -1,0 +1,47 @@
+# @package _global_
+# Stage 4: Self-Forcing++ over continuous pretraining-dataset episode subchains.
+
+defaults:
+  - ../model: primesim.yaml
+  - ../trainer: self_forcing.yaml
+  - ../loss: dmd.yaml
+  - _self_
+
+run_name: stage4_sf_pretrain
+
+action_dim: 31
+state_dim: 31
+img_height: 192
+img_width: 256
+fps: 10
+num_frames: 33
+continuation_num_frames: 37
+action_len: 32
+batch_size: 1
+
+datasets:
+  data_loader:
+    continuation_num_frames: ${continuation_num_frames}
+    stride: 1
+    shuffle: true
+    amortized_sampling: true
+    split_by_episode: true
+    defer_train_relative_action: true
+    segment_curriculum: ${self_forcing_chain_curriculum}
+
+# One continuous subchain is one generator update. Longer chains receive more
+# sampling mass while short examples remain represented.
+self_forcing_chain_curriculum:
+  - start_epoch: 0
+    min_segments: 1
+    max_segments: 12
+    length_sampling_power: 2.0
+
+learning_rate: 2.0e-6
+max_train_steps: 500_000
+save_steps: 2_000
+save_frame_steps: 0
+
+model:
+  checkpoint_path: /path/to/checkpoint
+score_checkpoint: /path/to/score_checkpoint

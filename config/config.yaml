@@ -1,0 +1,35 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - model: null
+  - loss: null
+  - dataset: null
+  - trainer: null
+  - launch: null
+
+exp_name: model_training
+work_dir: logs
+
+seed: 42
+learning_rate: 1.0e-4
+num_epochs: 1000
+strategy: ddp
+
+max_train_steps: 500_000
+lr_warmup_steps: 10_000
+lr_min_ratio: 0.05
+
+run_name: default
+
+save_steps: 10_000
+save_frame_steps: 1_000
+
+
+optimizer_cfg:
+  weight_decay: 1.0e-2
+  betas: [0.9, 0.95]
+
+hydra:
+  run:
+    dir: ${work_dir}/${now:%Y.%m.%d}/${exp_name}

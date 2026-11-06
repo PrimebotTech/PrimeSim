@@ -1,0 +1,29 @@
+# @package _global_
+# Stage 2: distil the stage 1 (causal) world model into a few-step one with causal
+# consistency distillation (ConsistencyDistillationLoss), starting from a stage 1
+# checkpoint. Sample videos use the EMA model with 4 consistency steps per chunk.
+
+defaults:
+  - ../model: primesim.yaml
+  - ../trainer: distill.yaml
+  - ../loss: consistency_distillation.yaml
+  - _self_
+
+run_name: stage2_distill          # checkpoints -> models/stage2_distill
+
+action_dim: 31                    # = SLOT_OFFSETS total; see ../dataset/midtrain.yaml
+state_dim: 31                     # unused by this path, kept equal to action_dim
+learning_rate: 1.0e-4
+max_train_steps: 500_000
+save_steps: 5_000
+save_frame_steps: 1_000
+img_height: 192
+img_width: 256
+fps: 10
+num_frames: 33                    # 9 latent frames = 3 causal chunks
+action_len: 32
+batch_size: 1
+
+# The stage 1 checkpoint to distil.
+model:
+  checkpoint_path: /path/to/checkpoint

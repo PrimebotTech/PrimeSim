@@ -1,0 +1,404 @@
+# InternData-A1 split_aloha (robot_type "AgileX Split Aloha", 30 fps), task group pick_and_place_tasks.
+#
+# Bimanual, three views. Column layout is identical to interndata_a1_genie1_sim.yaml, so
+# the same three transforms are reused unchanged.
+#
+# Geometry is official-URDF exact: recorded poses agree with FK to 2-5e-08 m, and the TCP
+# sits a rigid 135.0 mm along the tool +Z from the flange, constant to 3e-09 m across all
+# 332 roots of this profile.
+#
+# Source: /path/to/raw/dataset
+# (native LeRobot v3 staging of the official `sim_updated_lerobotv30` archives; 286/286
+# staged, 1,488 roots total. Provenance + sidecar-uniformity table in
+# /pfs/unified_actions/docs/records/claude_handoff_sim_updated_native_v30_2026_08_27.md)
+#
+# WHY THIS PROFILE IS SPLIT ACROSS TASK GROUPS: `root / repo_id` is joined by
+# LeRobotDataset, and huggingface's validate_repo_id rejects a repo_id with more than two
+# path segments. The corpus nests as <task_group>/<embodiment>/<task>[/<object>], so the
+# root has to absorb <task_group>/<embodiment> for the repo_ids to be legal. That is the
+# only reason there is one config per task group rather than one per profile.
+#
+# Two things this config does NOT claim:
+#   * Every root carries `readiness.training_allowlist = false` in its
+#     meta/unified_actions.json. Geometry (L1) is certified; causal action (L2) and camera
+#     (L3) are not. Do not read this config's existence as a training gate.
+#   * `actions.*` is a known LEFT-SHIFTED COPY of achieved state, not a controller command
+#     -- measured at 1e-06 tolerance on 12 roots of this profile
+#     (out/internData_a1_native_v30_master_timing_20260831.json). `ToRelativeAction`
+#     therefore yields "delta to the next achieved pose": a valid world-model transition
+#     target, NOT policy supervision. This is exactly what interndata_a1_genie1_sim.yaml
+#     already does with the same columns.
+#
+# eef slots come from `*tcp_to_robot_pose` (grasp point in the robot root frame), not
+# `*ee_to_robot_pose`, matching genie1: TCP is where contact happens. Quaternions in this
+# corpus are wxyz; GetStateInternDataA1Genie1 reorders them to the slots' xyzw.
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      images.rgb.head: img_1
+      images.rgb.hand_left: img_2
+      images.rgb.hand_right: img_3
+      states.left_tcp_to_robot_pose: left_eef_state
+      states.left_gripper.position: left_grip_state
+      states.right_tcp_to_robot_pose: right_eef_state
+      states.right_gripper.position: right_grip_state
+      actions.left_tcp_to_robot_pose: left_eef_action
+      actions.left_gripper.position: left_grip_action
+      actions.right_tcp_to_robot_pose: right_eef_action
+      actions.right_gripper.position: right_grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_grip_state", "right_eef_state", "right_grip_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_grip_action", "right_eef_action", "right_grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      images.rgb.head: img_1
+      images.rgb.hand_left: img_2
+      images.rgb.hand_right: img_3
+      states.left_tcp_to_robot_pose: left_eef_state
+      states.left_gripper.position: left_grip_state
+      states.right_tcp_to_robot_pose: right_eef_state
+      states.right_gripper.position: right_grip_state
+      actions.left_tcp_to_robot_pose: left_eef_action
+      actions.left_gripper.position: left_grip_action
+      actions.right_tcp_to_robot_pose: right_eef_action
+      actions.right_gripper.position: right_grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_grip_state", "right_eef_state", "right_grip_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_grip_action", "right_eef_action", "right_grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - "continues_pick_and_place_part1"
+    - "continues_pick_and_place_part2"
+    - "continues_pick_and_place_part3"
+    - "parallel_pick_and_place/basket_top"
+    - "parallel_pick_and_place/bowl"
+    - "parallel_pick_and_place/box"
+    - "parallel_pick_and_place/dish"
+    - "parallel_pick_and_place_left_left/basket"
+    - "parallel_pick_and_place_left_left/basket_top"
+    - "parallel_pick_and_place_left_left/bowl"
+    - "parallel_pick_and_place_left_left/box"
+    - "parallel_pick_and_place_left_left/dish"
+    - "parallel_pick_and_place_left_left/drawing"
+    - "parallel_pick_and_place_left_left/flower_pot"
+    - "parallel_pick_and_place_left_left/microwaveoven"
+    - "parallel_pick_and_place_left_left/pad"
+    - "parallel_pick_and_place_left_left/pan"
+    - "parallel_pick_and_place_left_left/projector"
+    - "parallel_pick_and_place_left_right/basket"
+    - "parallel_pick_and_place_left_right/basket_top"
+    - "parallel_pick_and_place_left_right/bowl"
+    - "parallel_pick_and_place_left_right/box"
+    - "parallel_pick_and_place_left_right/dish"
+    - "parallel_pick_and_place_left_right/drawing"
+    - "parallel_pick_and_place_left_right/flower_pot"
+    - "parallel_pick_and_place_left_right/microwaveoven"
+    - "parallel_pick_and_place_left_right/pad"
+    - "parallel_pick_and_place_left_right/pan"
+    - "parallel_pick_and_place_left_right/projector"
+    - "parallel_pick_and_place_right_left/basket"
+    - "parallel_pick_and_place_right_left/bowl"
+    - "parallel_pick_and_place_right_left/dish"
+    - "parallel_pick_and_place_right_left/flower_pot"
+    - "parallel_pick_and_place_right_left/pan"
+    - "parallel_pick_and_place_right_right/basket"
+    - "parallel_pick_and_place_right_right/bowl"
+    - "parallel_pick_and_place_right_right/dish"
+    - "parallel_pick_and_place_right_right/flower_pot"
+    - "parallel_pick_and_place_right_right/pan"
+    - "single_pick_left_arm/google_scan-book"
+    - "single_pick_left_arm/google_scan-box"
+    - "single_pick_left_arm/google_scan-handbag"
+    - "single_pick_left_arm/google_scan-hat"
+    - "single_pick_left_arm/omniobject3d-asparagus"
+    - "single_pick_left_arm/omniobject3d-ball"
+    - "single_pick_left_arm/omniobject3d-bamboo_shoots"
+    - "single_pick_left_arm/omniobject3d-banana"
+    - "single_pick_left_arm/omniobject3d-battery"
+    - "single_pick_left_arm/omniobject3d-belt"
+    - "single_pick_left_arm/omniobject3d-bottle"
+    - "single_pick_left_arm/omniobject3d-bowl"
+    - "single_pick_left_arm/omniobject3d-box"
+    - "single_pick_left_arm/omniobject3d-boxed_beverage"
+    - "single_pick_left_arm/omniobject3d-bread"
+    - "single_pick_left_arm/omniobject3d-brush"
+    - "single_pick_left_arm/omniobject3d-cake"
+    - "single_pick_left_arm/omniobject3d-calculator"
+    - "single_pick_left_arm/omniobject3d-candle"
+    - "single_pick_left_arm/omniobject3d-carrot"
+    - "single_pick_left_arm/omniobject3d-chess"
+    - "single_pick_left_arm/omniobject3d-chicken_leg"
+    - "single_pick_left_arm/omniobject3d-chili"
+    - "single_pick_left_arm/omniobject3d-chinese_chess"
+    - "single_pick_left_arm/omniobject3d-clock"
+    - "single_pick_left_arm/omniobject3d-conch"
+    - "single_pick_left_arm/omniobject3d-corn"
+    - "single_pick_left_arm/omniobject3d-cucumber"
+    - "single_pick_left_arm/omniobject3d-cup"
+    - "single_pick_left_arm/omniobject3d-dinosaur"
+    - "single_pick_left_arm/omniobject3d-dish"
+    - "single_pick_left_arm/omniobject3d-donut"
+    - "single_pick_left_arm/omniobject3d-dumpling"
+    - "single_pick_left_arm/omniobject3d-egg"
+    - "single_pick_left_arm/omniobject3d-egg_tart"
+    - "single_pick_left_arm/omniobject3d-eraser"
+    - "single_pick_left_arm/omniobject3d-facial_cream"
+    - "single_pick_left_arm/omniobject3d-flash_light"
+    - "single_pick_left_arm/omniobject3d-garage_kit"
+    - "single_pick_left_arm/omniobject3d-glasses"
+    - "single_pick_left_arm/omniobject3d-glasses_case"
+    - "single_pick_left_arm/omniobject3d-hair_dryer"
+    - "single_pick_left_arm/omniobject3d-hamburger"
+    - "single_pick_left_arm/omniobject3d-hammer"
+    - "single_pick_left_arm/omniobject3d-hand_cream"
+    - "single_pick_left_arm/omniobject3d-hot_dog"
+    - "single_pick_left_arm/omniobject3d-knife"
+    - "single_pick_left_arm/omniobject3d-lemon"
+    - "single_pick_left_arm/omniobject3d-lipstick"
+    - "single_pick_left_arm/omniobject3d-lotus_root"
+    - "single_pick_left_arm/omniobject3d-mango"
+    - "single_pick_left_arm/omniobject3d-mangosteen"
+    - "single_pick_left_arm/omniobject3d-medicine_bottle"
+    - "single_pick_left_arm/omniobject3d-mooncake"
+    - "single_pick_left_arm/omniobject3d-mouse"
+    - "single_pick_left_arm/omniobject3d-mug"
+    - "single_pick_left_arm/omniobject3d-onion"
+    - "single_pick_left_arm/omniobject3d-orange"
+    - "single_pick_left_arm/omniobject3d-pastry"
+    - "single_pick_left_arm/omniobject3d-peach"
+    - "single_pick_left_arm/omniobject3d-pear"
+    - "single_pick_left_arm/omniobject3d-pen"
+    - "single_pick_left_arm/omniobject3d-pineapple"
+    - "single_pick_left_arm/omniobject3d-pitaya"
+    - "single_pick_left_arm/omniobject3d-pomegranate"
+    - "single_pick_left_arm/omniobject3d-power_strip"
+    - "single_pick_left_arm/omniobject3d-razor"
+    - "single_pick_left_arm/omniobject3d-red_wine_glass"
+    - "single_pick_left_arm/omniobject3d-remote_control"
+    - "single_pick_left_arm/omniobject3d-rubik_cube"
+    - "single_pick_left_arm/omniobject3d-sausage"
+    - "single_pick_left_arm/omniobject3d-scissor"
+    - "single_pick_left_arm/omniobject3d-shampoo"
+    - "single_pick_left_arm/omniobject3d-shoe"
+    - "single_pick_left_arm/omniobject3d-shrimp"
+    - "single_pick_left_arm/omniobject3d-soap"
+    - "single_pick_left_arm/omniobject3d-spanner"
+    - "single_pick_left_arm/omniobject3d-starfish"
+    - "single_pick_left_arm/omniobject3d-sweet_potato"
+    - "single_pick_left_arm/omniobject3d-table_tennis_bat"
+    - "single_pick_left_arm/omniobject3d-tape_measure"
+    - "single_pick_left_arm/omniobject3d-teapot"
+    - "single_pick_left_arm/omniobject3d-timer"
+    - "single_pick_left_arm/omniobject3d-tissue"
+    - "single_pick_left_arm/omniobject3d-tomato"
+    - "single_pick_left_arm/omniobject3d-tooth_brush"
+    - "single_pick_left_arm/omniobject3d-tooth_paste"
+    - "single_pick_left_arm/omniobject3d-toy_animals"
+    - "single_pick_left_arm/omniobject3d-toy_boat"
+    - "single_pick_left_arm/omniobject3d-toy_car"
+    - "single_pick_left_arm/omniobject3d-toy_motorcycle"
+    - "single_pick_left_arm/omniobject3d-toy_plane"
+    - "single_pick_left_arm/omniobject3d-toy_plant"
+    - "single_pick_left_arm/omniobject3d-toy_train"
+    - "single_pick_left_arm/omniobject3d-toy_truck"
+    - "single_pick_left_arm/omniobject3d-umbrella"
+    - "single_pick_left_arm/omniobject3d-waffle"
+    - "single_pick_left_arm/omniobject3d-watch"
+    - "single_pick_left_arm/omniobject3d-whistle"
+    - "single_pick_left_arm/phocal-can"
+    - "single_pick_left_arm/phocal-red_wine_glass"
+    - "single_pick_left_arm/phocal-spoon"
+    - "single_pick_left_arm/real-camera"
+    - "single_pick_right_arm/google_scan-book"
+    - "single_pick_right_arm/google_scan-box"
+    - "single_pick_right_arm/google_scan-handbag"
+    - "single_pick_right_arm/google_scan-hat"
+    - "single_pick_right_arm/omniobject3d-asparagus"
+    - "single_pick_right_arm/omniobject3d-ball"
+    - "single_pick_right_arm/omniobject3d-bamboo_shoots"
+    - "single_pick_right_arm/omniobject3d-banana"
+    - "single_pick_right_arm/omniobject3d-battery"
+    - "single_pick_right_arm/omniobject3d-belt"
+    - "single_pick_right_arm/omniobject3d-bottle"
+    - "single_pick_right_arm/omniobject3d-bowl"
+    - "single_pick_right_arm/omniobject3d-box"
+    - "single_pick_right_arm/omniobject3d-boxed_beverage"
+    - "single_pick_right_arm/omniobject3d-bread"
+    - "single_pick_right_arm/omniobject3d-brush"
+    - "single_pick_right_arm/omniobject3d-cake"
+    - "single_pick_right_arm/omniobject3d-calculator"
+    - "single_pick_right_arm/omniobject3d-candle"
+    - "single_pick_right_arm/omniobject3d-carrot"
+    - "single_pick_right_arm/omniobject3d-chess"
+    - "single_pick_right_arm/omniobject3d-chicken_leg"
+    - "single_pick_right_arm/omniobject3d-chili"
+    - "single_pick_right_arm/omniobject3d-chinese_chess"
+    - "single_pick_right_arm/omniobject3d-clock"
+    - "single_pick_right_arm/omniobject3d-conch"
+    - "single_pick_right_arm/omniobject3d-corn"
+    - "single_pick_right_arm/omniobject3d-cucumber"
+    - "single_pick_right_arm/omniobject3d-cup"
+    - "single_pick_right_arm/omniobject3d-dinosaur"
+    - "single_pick_right_arm/omniobject3d-dish"
+    - "single_pick_right_arm/omniobject3d-donut"
+    - "single_pick_right_arm/omniobject3d-dumpling"
+    - "single_pick_right_arm/omniobject3d-egg"
+    - "single_pick_right_arm/omniobject3d-egg_tart"
+    - "single_pick_right_arm/omniobject3d-eraser"
+    - "single_pick_right_arm/omniobject3d-facial_cream"
+    - "single_pick_right_arm/omniobject3d-flash_light"
+    - "single_pick_right_arm/omniobject3d-garage_kit"
+    - "single_pick_right_arm/omniobject3d-glasses"
+    - "single_pick_right_arm/omniobject3d-glasses_case"
+    - "single_pick_right_arm/omniobject3d-hair_dryer"
+    - "single_pick_right_arm/omniobject3d-hamburger"
+    - "single_pick_right_arm/omniobject3d-hammer"
+    - "single_pick_right_arm/omniobject3d-hand_cream"
+    - "single_pick_right_arm/omniobject3d-hot_dog"
+    - "single_pick_right_arm/omniobject3d-knife"
+    - "single_pick_right_arm/omniobject3d-lemon"
+    - "single_pick_right_arm/omniobject3d-lipstick"
+    - "single_pick_right_arm/omniobject3d-lotus_root"
+    - "single_pick_right_arm/omniobject3d-mango"
+    - "single_pick_right_arm/omniobject3d-mangosteen"
+    - "single_pick_right_arm/omniobject3d-medicine_bottle"
+    - "single_pick_right_arm/omniobject3d-mooncake"
+    - "single_pick_right_arm/omniobject3d-mouse"
+    - "single_pick_right_arm/omniobject3d-mug"
+    - "single_pick_right_arm/omniobject3d-onion"
+    - "single_pick_right_arm/omniobject3d-orange"
+    - "single_pick_right_arm/omniobject3d-pastry"
+    - "single_pick_right_arm/omniobject3d-peach"
+    - "single_pick_right_arm/omniobject3d-pear"
+    - "single_pick_right_arm/omniobject3d-pen"
+    - "single_pick_right_arm/omniobject3d-pineapple"
+    - "single_pick_right_arm/omniobject3d-pomegranate"
+    - "single_pick_right_arm/omniobject3d-power_strip"
+    - "single_pick_right_arm/omniobject3d-razor"
+    - "single_pick_right_arm/omniobject3d-red_wine_glass"
+    - "single_pick_right_arm/omniobject3d-remote_control"
+    - "single_pick_right_arm/omniobject3d-rubik_cube"
+    - "single_pick_right_arm/omniobject3d-sausage"
+    - "single_pick_right_arm/omniobject3d-scissor"
+    - "single_pick_right_arm/omniobject3d-shampoo"
+    - "single_pick_right_arm/omniobject3d-shoe"
+    - "single_pick_right_arm/omniobject3d-shrimp"
+    - "single_pick_right_arm/omniobject3d-soap"
+    - "single_pick_right_arm/omniobject3d-spanner"
+    - "single_pick_right_arm/omniobject3d-starfish"
+    - "single_pick_right_arm/omniobject3d-sweet_potato"
+    - "single_pick_right_arm/omniobject3d-table_tennis_bat"
+    - "single_pick_right_arm/omniobject3d-tape_measure"
+    - "single_pick_right_arm/omniobject3d-teapot"
+    - "single_pick_right_arm/omniobject3d-timer"
+    - "single_pick_right_arm/omniobject3d-tissue"
+    - "single_pick_right_arm/omniobject3d-tomato"
+    - "single_pick_right_arm/omniobject3d-tooth_brush"
+    - "single_pick_right_arm/omniobject3d-tooth_paste"
+    - "single_pick_right_arm/omniobject3d-toy_animals"
+    - "single_pick_right_arm/omniobject3d-toy_boat"
+    - "single_pick_right_arm/omniobject3d-toy_car"
+    - "single_pick_right_arm/omniobject3d-toy_motorcycle"
+    - "single_pick_right_arm/omniobject3d-toy_plane"
+    - "single_pick_right_arm/omniobject3d-toy_plant"
+    - "single_pick_right_arm/omniobject3d-toy_train"
+    - "single_pick_right_arm/omniobject3d-toy_truck"
+    - "single_pick_right_arm/omniobject3d-umbrella"
+    - "single_pick_right_arm/omniobject3d-waffle"
+    - "single_pick_right_arm/omniobject3d-watch"
+    - "single_pick_right_arm/omniobject3d-whistle"
+    - "single_pick_right_arm/phocal-can"
+    - "single_pick_right_arm/phocal-red_wine_glass"
+    - "single_pick_right_arm/phocal-spoon"
+    - "single_pick_right_arm/real-camera"
+  action_sources:
+    - actions.left_tcp_to_robot_pose
+    - actions.left_gripper.position
+    - actions.right_tcp_to_robot_pose
+    - actions.right_gripper.position
+  fps: ${fps}

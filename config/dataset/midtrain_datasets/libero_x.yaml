@@ -1,0 +1,112 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.image: img_1
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateLibero
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: LiberoDeltaToRelativeAction
+    action_len: ${action_len}
+    source_fps: 10
+    target_fps: ${fps}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: 256
+    width: 256
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.image: img_1
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateLibero
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: LiberoDeltaToRelativeAction
+    action_len: ${action_len}
+    source_fps: 10
+    target_fps: ${fps}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: 256
+    width: 256
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  action_from_state: false
+  raw_action_fps: 10
+  fps: ${fps}
+  repo_ids:
+    - LIBERO-X

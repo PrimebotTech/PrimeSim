@@ -1,0 +1,239 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAgiBotWorld2026
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+    source_cols: &state_cols
+      left_eef:      [58, 59, 60, 50, 51, 52, 53]
+      left_gripper:  [0]
+      right_eef:     [61, 62, 63, 54, 55, 56, 57]
+      right_gripper: [1]
+      head:          [106, 107, 108]
+      waist:         [109, 110, 111, 112, 113]
+  - type: GetActionAgiBotWorld2026
+    action_len: ${action_len}
+    key_mapper:
+      - action_vector: ("action", "action_mask")
+    source_cols: &action_cols
+      left_eef:      [2, 3, 4, 8, 9, 10, 11]
+      left_gripper:  [0]
+      right_eef:     [5, 6, 7, 12, 13, 14, 15]
+      right_gripper: [1]
+      head:          [30, 31, 32]
+      waist:         [33, 34, 35, 36, 37]
+      chassis:       [38, 39, 43]
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAgiBotWorld2026
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+    source_cols: *state_cols
+  - type: GetActionAgiBotWorld2026
+    action_len: ${action_len}
+    key_mapper:
+      - action_vector: ("action", "action_mask")
+    source_cols: *action_cols
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  action_from_state: false
+  fps: ${fps}
+  repo_ids:
+    - ImitationLearning/CommercialSpaces/task_4542/465501_467318/data
+    - ImitationLearning/CommercialSpaces/task_4542/468833_471492/data
+    - ImitationLearning/CommercialSpaces/task_4542/471493_475790/data
+    - ImitationLearning/CommercialSpaces/task_4542/475937_480093/data
+    - ImitationLearning/CommercialSpaces/task_4542/480102_484918/data
+    - ImitationLearning/CommercialSpaces/task_4542/484925_488212/data
+    - ImitationLearning/CommercialSpaces/task_4542/488223_496015/data
+    - ImitationLearning/CommercialSpaces/task_4542/496027_497478/data
+    - ImitationLearning/CommercialSpaces/task_4542/497493_498246/data
+    - ImitationLearning/CommercialSpaces/task_4542/498247_501111/data
+    - ImitationLearning/CommercialSpaces/task_4542/501113_502008/data
+    - ImitationLearning/CommercialSpaces/task_4542/502012_505899/data
+    - ImitationLearning/CommercialSpaces/task_4542/505904_511914/data
+    - ImitationLearning/CommercialSpaces/task_4542/511921_517083/data
+    - ImitationLearning/CommercialSpaces/task_4542/517196_521736/data
+    - ImitationLearning/CommercialSpaces/task_4542/521742_523072/data
+    - ImitationLearning/CommercialSpaces/task_4542/523075_527871/data
+    - ImitationLearning/CommercialSpaces/task_4542/527875_529177/data
+    - ImitationLearning/CommercialSpaces/task_4542/529178_531609/data
+    - ImitationLearning/CommercialSpaces/task_4542/531611_534822/data
+    - ImitationLearning/CommercialSpaces/task_4542/534825_536939/data
+    - ImitationLearning/CommercialSpaces/task_4542/536942_538152/data
+    - ImitationLearning/CommercialSpaces/task_4542/538158_543237/data
+    - ImitationLearning/CommercialSpaces/task_4542/543246_545940/data
+    - ImitationLearning/CommercialSpaces/task_4542/545942_547298/data
+    - ImitationLearning/CommercialSpaces/task_4542/547302_553047/data
+    - ImitationLearning/CommercialSpaces/task_4542/553049_553079/data
+    - ImitationLearning/CommercialSpaces/task_4799/520852_521864/data
+    - ImitationLearning/CommercialSpaces/task_4799/521866_522631/data
+    - ImitationLearning/CommercialSpaces/task_4799/522635_523073/data
+    - ImitationLearning/CommercialSpaces/task_4799/523074_524492/data
+    - ImitationLearning/CommercialSpaces/task_4799/524513_527859/data
+    - ImitationLearning/CommercialSpaces/task_4799/527861_528707/data
+    - ImitationLearning/CommercialSpaces/task_4799/528818_529261/data
+    - ImitationLearning/CommercialSpaces/task_4799/529262_531565/data
+    - ImitationLearning/CommercialSpaces/task_4799/531569_532892/data
+    - ImitationLearning/CommercialSpaces/task_4799/532904_535045/data
+    - ImitationLearning/CommercialSpaces/task_4799/535046_537085/data
+    - ImitationLearning/CommercialSpaces/task_4799/537092_538194/data
+    - ImitationLearning/CommercialSpaces/task_4799/538199_539639/data
+    - ImitationLearning/CommercialSpaces/task_4799/539640_539786/data
+    - ImitationLearning/CommercialSpaces/task_4799/539787_541219/data
+    - ImitationLearning/CommercialSpaces/task_4799/541220_542411/data
+    - ImitationLearning/CommercialSpaces/task_4799/542412_542490/data
+    - ImitationLearning/CommercialSpaces/task_4799/542491_542593/data
+    - ImitationLearning/CommercialSpaces/task_4799/542594_542876/data
+    - ImitationLearning/CommercialSpaces/task_4799/542882_547493/data
+    - ImitationLearning/CommercialSpaces/task_4799/547510_553161/data
+    - ImitationLearning/CommercialSpaces/task_4799/553173_553243/data
+    - ImitationLearning/Home/task_4713/502226_505908/data
+    - ImitationLearning/Home/task_4713/505914_507691/data
+    - ImitationLearning/Home/task_4713/507708_508595/data
+    - ImitationLearning/Home/task_4713/508596_508885/data
+    - ImitationLearning/Home/task_4713/508888_509224/data
+    - ImitationLearning/Home/task_4713/509284_509558/data
+    - ImitationLearning/Home/task_4713/509560_509994/data
+    - ImitationLearning/Home/task_4713/509995_510027/data
+    - RichInteraction/CommercialSpaces/task_4603/502810_508842/data
+    - RichInteraction/CommercialSpaces/task_4603/508849_509565/data
+    - RichInteraction/CommercialSpaces/task_4603/509567_509895/data
+    - RichInteraction/CommercialSpaces/task_4952/558894_561515/data
+    - RichInteraction/CommercialSpaces/task_4952/561543_568393/data
+    - RichInteraction/CommercialSpaces/task_4952/568395_570481/data
+    - RichInteraction/CommercialSpaces/task_4952/570811_571756/data
+    - RichInteraction/CommercialSpaces/task_4962/554190_554893/data
+    - RichInteraction/CommercialSpaces/task_4962/554894_555920/data
+    - RichInteraction/CommercialSpaces/task_4962/555922_557749/data
+    - RichInteraction/CommercialSpaces/task_4962/557751_559048/data
+    - RichInteraction/CommercialSpaces/task_4962/559058_559739/data
+    - RichInteraction/CommercialSpaces/task_4962/559744_561542/data
+    - RichInteraction/CommercialSpaces/task_4962/561551_566817/data
+    - RichInteraction/CommercialSpaces/task_4962/566818_568041/data
+    - RichInteraction/CommercialSpaces/task_4962/568047_568907/data
+    - RichInteraction/CommercialSpaces/task_4962/568910_570793/data
+    - RichInteraction/CommercialSpaces/task_4962/570794_572296/data
+    - RichInteraction/CommercialSpaces/task_4962/572297_579900/data
+    - RichInteraction/CommercialSpaces/task_4962/579903_581442/data
+    - RichInteraction/CommercialSpaces/task_4962/581445_583438/data
+    - RichInteraction/CommercialSpaces/task_4962/583440_595803/data
+    - RichInteraction/CommercialSpaces/task_4962/595862_609348/data
+    - RichInteraction/CommercialSpaces/task_4962/609362_612197/data
+    - RichInteraction/CommercialSpaces/task_4962/612203_614879/data
+    - RichInteraction/CommercialSpaces/task_4962/614882_621511/data
+    - RichInteraction/CommercialSpaces/task_4962/621519_624678/data
+    - RichInteraction/CommercialSpaces/task_4962/627019_627618/data
+    - RichInteraction/CommercialSpaces/task_4962/627622_635514/data
+    - RichInteraction/CommercialSpaces/task_4962/660618_663162/data
+    - RichInteraction/CommercialSpaces/task_4962/663166_665729/data
+    - RichInteraction/CommercialSpaces/task_4962/665739_669169/data
+    - RichInteraction/CommercialSpaces/task_4962/669172_679614/data
+    - RichInteraction/Home/task_4560/470673_495707/data
+    - RichInteraction/Home/task_4560/495820_501769/data
+    - RichInteraction/Home/task_5015/579807_581448/data
+    - RichInteraction/Home/task_5015/581451_583398/data
+    - RichInteraction/Home/task_5015/583404_586652/data
+    - RichInteraction/Home/task_5015/586654_606644/data
+    - RichInteraction/Home/task_5015/606653_611825/data
+    - RichInteraction/Home/task_5015/611831_613057/data
+    - RichInteraction/Home/task_5015/613079_621858/data
+    - RichInteraction/Home/task_5015/621872_624857/data
+    - RichInteraction/Home/task_5015/624859_634312/data
+    - RichInteraction/Home/task_5015/634314_660378/data
+    - RichInteraction/Home/task_5015/660399_662363/data
+    - RichInteraction/Home/task_5015/662381_669845/data
+    - RichInteraction/Home/task_5015/669846_676965/data
+    - RichInteraction/Home/task_5015/676988_681175/data
+    - RichInteraction/Home/task_5015/681182_684999/data
+    - RichInteraction/Home/task_5015/685000_694807/data

@@ -1,0 +1,185 @@
+# InternData-A1 split_aloha (robot_type "AgileX Split Aloha", 30 fps), task group articulation_tasks.
+#
+# Bimanual, three views. Column layout is identical to interndata_a1_genie1_sim.yaml, so
+# the same three transforms are reused unchanged.
+#
+# Geometry is official-URDF exact: recorded poses agree with FK to 2-5e-08 m, and the TCP
+# sits a rigid 135.0 mm along the tool +Z from the flange, constant to 3e-09 m across all
+# 332 roots of this profile.
+#
+# Source: /path/to/raw/dataset
+# (native LeRobot v3 staging of the official `sim_updated_lerobotv30` archives; 286/286
+# staged, 1,488 roots total. Provenance + sidecar-uniformity table in
+# /pfs/unified_actions/docs/records/claude_handoff_sim_updated_native_v30_2026_08_27.md)
+#
+# WHY THIS PROFILE IS SPLIT ACROSS TASK GROUPS: `root / repo_id` is joined by
+# LeRobotDataset, and huggingface's validate_repo_id rejects a repo_id with more than two
+# path segments. The corpus nests as <task_group>/<embodiment>/<task>[/<object>], so the
+# root has to absorb <task_group>/<embodiment> for the repo_ids to be legal. That is the
+# only reason there is one config per task group rather than one per profile.
+#
+# Two things this config does NOT claim:
+#   * Every root carries `readiness.training_allowlist = false` in its
+#     meta/unified_actions.json. Geometry (L1) is certified; causal action (L2) and camera
+#     (L3) are not. Do not read this config's existence as a training gate.
+#   * `actions.*` is a known LEFT-SHIFTED COPY of achieved state, not a controller command
+#     -- measured at 1e-06 tolerance on 12 roots of this profile
+#     (out/internData_a1_native_v30_master_timing_20260831.json). `ToRelativeAction`
+#     therefore yields "delta to the next achieved pose": a valid world-model transition
+#     target, NOT policy supervision. This is exactly what interndata_a1_genie1_sim.yaml
+#     already does with the same columns.
+#
+# eef slots come from `*tcp_to_robot_pose` (grasp point in the robot root frame), not
+# `*ee_to_robot_pose`, matching genie1: TCP is where contact happens. Quaternions in this
+# corpus are wxyz; GetStateInternDataA1Genie1 reorders them to the slots' xyzw.
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      images.rgb.head: img_1
+      images.rgb.hand_left: img_2
+      images.rgb.hand_right: img_3
+      states.left_tcp_to_robot_pose: left_eef_state
+      states.left_gripper.position: left_grip_state
+      states.right_tcp_to_robot_pose: right_eef_state
+      states.right_gripper.position: right_grip_state
+      actions.left_tcp_to_robot_pose: left_eef_action
+      actions.left_gripper.position: left_grip_action
+      actions.right_tcp_to_robot_pose: right_eef_action
+      actions.right_gripper.position: right_grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_grip_state", "right_eef_state", "right_grip_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_grip_action", "right_eef_action", "right_grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      images.rgb.head: img_1
+      images.rgb.hand_left: img_2
+      images.rgb.hand_right: img_3
+      states.left_tcp_to_robot_pose: left_eef_state
+      states.left_gripper.position: left_grip_state
+      states.right_tcp_to_robot_pose: right_eef_state
+      states.right_gripper.position: right_grip_state
+      actions.left_tcp_to_robot_pose: left_eef_action
+      actions.left_gripper.position: left_grip_action
+      actions.right_tcp_to_robot_pose: right_eef_action
+      actions.right_gripper.position: right_grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataA1Genie1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_grip_state", "right_eef_state", "right_grip_state"): state
+  - type: GetActionInternDataA1Genie1
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_grip_action", "right_eef_action", "right_grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - "close_the_microwave_left_arm"
+    - "close_the_microwave_right_arm"
+    - "open_the_microwave_from_scratch"
+    - "open_the_microwave_left_arm"
+    - "open_the_microwave_right_arm"
+    - "pull_the_storagefurniture_left_arm_bottom"
+    - "pull_the_storagefurniture_left_arm_middle"
+    - "pull_the_storagefurniture_left_arm_top"
+    - "pull_the_storagefurniture_right_arm_bottom"
+    - "pull_the_storagefurniture_right_arm_middle"
+    - "pull_the_storagefurniture_right_arm_top"
+    - "push_the_storagefurniture_left_arm_bottom"
+    - "push_the_storagefurniture_left_arm_middle"
+    - "push_the_storagefurniture_left_arm_top"
+    - "push_the_storagefurniture_right_arm_bottom"
+    - "push_the_storagefurniture_right_arm_middle"
+    - "push_the_storagefurniture_right_arm_top"
+    - "rotate_the_left_hearth_left_arm_clockwise"
+    - "rotate_the_left_hearth_left_arm_counterclockwise"
+    - "rotate_the_left_hearth_right_arm_clockwise"
+    - "rotate_the_left_hearth_right_arm_counterclockwise"
+    - "rotate_the_right_hearth_left_arm_clockwise"
+    - "rotate_the_right_hearth_left_arm_counterclockwise"
+    - "rotate_the_right_hearth_right_arm_clockwise"
+    - "rotate_the_right_hearth_right_arm_counterclockwise"
+  action_sources:
+    - actions.left_tcp_to_robot_pose
+    - actions.left_gripper.position
+    - actions.right_tcp_to_robot_pose
+    - actions.right_gripper.position
+  fps: ${fps}

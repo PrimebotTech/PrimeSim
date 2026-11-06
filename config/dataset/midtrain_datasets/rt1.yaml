@@ -1,0 +1,117 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.image: img_1
+      observation.state: state_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateRT1Fractal
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionRT1Fractal
+    state_len: 1
+    action_len: ${action_len}
+    key_mapper:
+      - ("state_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.image: img_1
+      observation.state: state_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateRT1Fractal
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionRT1Fractal
+    state_len: 1
+    action_len: ${action_len}
+    key_mapper:
+      - ("state_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - RT1-Fractal-LeRobot-v30
+  action_sources:
+    - observation.state
+  action_from_state: true
+  # RT-1 Fractal is recorded at 3 Hz, and lerobot only accepts delta_timestamps that
+  # are multiples of 1/native_fps. The global 5 is not, so this dataset keeps its own
+  # rate: 17 frames still, spanning 5.33s here against 3.2s elsewhere. The frame
+  # COUNT is what has to match across datasets for a batch to collate, not the span.
+  fps: 3

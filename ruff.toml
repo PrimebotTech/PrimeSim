@@ -1,0 +1,14 @@
+# PEP 8 layout, enforced with `ruff format` (Black-compatible) and `ruff check`.
+line-length = 88
+target-version = "py312"
+
+[lint]
+# pycodestyle errors / warnings (incl. E501 line length), pyflakes, import order
+select = ["E", "W", "F", "I"]
+
+[lint.per-file-ignores]
+# Re-export modules; their import order is load order (runner <-> video_utils cycle),
+# so it is not re-sorted.
+"__init__.py" = ["F401", "F403", "I001"]
+# Sets the CUDA allocator env and sys.path before its imports, on purpose.
+"scripts/train.py" = ["E402", "I001"]

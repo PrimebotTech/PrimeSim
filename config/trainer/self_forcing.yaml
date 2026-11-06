@@ -1,0 +1,36 @@
+# @package _global_
+
+defaults:
+  - dmd
+  - _self_
+
+train_module:
+  type: PrimeSimSelfForcingModule
+  opening_num_frames: ${num_frames}
+  continuation_num_frames: ${continuation_num_frames}
+  score_window_mode: random
+  generator_learning_rate: 2.0e-6
+  critic_learning_rate: 4.0e-7
+  generator_betas: [0.0, 0.999]
+  critic_betas: [0.0, 0.999]
+  local_attn_size: 21
+  sink_size: 3
+  last_step_only: true
+  update_ratio: 1
+  real_guidance_scale: 0.0
+
+optimizer:
+  type: PhaseAdamW
+  # Parameter groups override this with the generator/critic rates above. Keeping
+  # lr here satisfies the standard optimizer/config logging path.
+  lr: ${train_module.generator_learning_rate}
+  betas: ${train_module.generator_betas}
+  weight_decay: 1.0e-2
+  foreach: null
+
+trainer:
+  gradient_accumulation_steps: 1
+  constant_lr: true
+  find_unused_parameters: true
+  val_steps: 0
+  val_img_steps: 0

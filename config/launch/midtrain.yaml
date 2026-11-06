@@ -1,0 +1,29 @@
+# @package _global_
+# Midtrain the (bidirectional) world model on the full cross-embodiment mix
+# (../dataset/midtrain.yaml). Same recipe and data as launch=finetune; only the
+# starting checkpoint and run_name differ.
+
+defaults:
+  - ../model: primesim.yaml
+  - ../trainer: sft_full.yaml
+  - ../loss: fm_sft.yaml
+  - ../dataset: midtrain.yaml
+  - _self_
+
+run_name: midtrain                # checkpoints -> models/midtrain
+
+action_dim: 31                    # = SLOT_OFFSETS total; see the layout header in
+                                  # ../dataset/midtrain.yaml before changing it
+state_dim: 31                     # unused by this path, kept equal to action_dim
+max_train_steps: 1_000_000
+save_steps: 50_000
+save_frame_steps: 10_000
+img_height: 192
+img_width: 256
+fps: 10
+num_frames: 33
+action_len: 32
+batch_size: 1
+
+model:
+  checkpoint_path: /path/to/checkpoint

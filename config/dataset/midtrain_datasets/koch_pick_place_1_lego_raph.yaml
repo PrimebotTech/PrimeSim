@@ -1,0 +1,136 @@
+# Koch 6-motor follower, koch_pick_place_1_lego_raph: 100 episodes, 32951 frames at
+# 30 Hz, one arm, two cameras (laptop = front, phone = side). img_3 repeats img_1, as in
+# mimicgen.yaml.
+#
+# The eef columns are not shipped by the source dataset: scripts/add_eef_poses_koch.py
+# added them by FK, and its docstring records how the joint conventions were measured.
+# The gripper comes from the joint vector (motor_5, degrees), since FK does not touch it.
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.laptop: img_1
+      observation.images.phone: img_2
+      observation.states.eef_fk.data: eef_state
+      observation.state: state_vec
+      actions.eef_fk.data: eef_action
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_3]
+    mode: repeat
+  - type: GetStateKoch
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_state", "state_vec"): state
+  - type: GetActionKoch
+    action_len: ${action_len}
+    pad_key: action_is_pad
+    key_mapper:
+      - ("eef_action", "action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Pick the lego blocks and place them in the box
+  - type: TransformPrompt
+    default_prompt: Pick the lego blocks and place them in the box
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.laptop: img_1
+      observation.images.phone: img_2
+      observation.states.eef_fk.data: eef_state
+      observation.state: state_vec
+      actions.eef_fk.data: eef_action
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_3]
+    mode: repeat
+  - type: GetStateKoch
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_state", "state_vec"): state
+  - type: GetActionKoch
+    action_len: ${action_len}
+    pad_key: action_is_pad
+    key_mapper:
+      - ("eef_action", "action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Pick the lego blocks and place them in the box
+  - type: TransformPrompt
+    default_prompt: Pick the lego blocks and place them in the box
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - koch_pick_place_1_lego_raph
+  # Both action-side columns get the action window: the eef pose for left_eef and the
+  # joint vector for the gripper. They are separate from the state columns, so the
+  # action is read on its own window rather than off the state.
+  action_sources:
+    - actions.eef_fk.data
+    - action
+  action_from_state: false
+  # 30 Hz native and the global 10 is an integer divisor, so the dataset can use the
+  # shared grid: 33 frames span 3.2 s, every third native frame.
+  fps: ${fps}

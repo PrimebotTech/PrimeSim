@@ -1,0 +1,116 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.agentview: img_1
+      observation.images.eye_in_hand: img_2
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_3]
+    mode: repeat
+  - type: GetStateMimicGen
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionMimicGen
+    action_len: ${action_len}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.agentview: img_1
+      observation.images.eye_in_hand: img_2
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_3]
+    mode: repeat
+  - type: GetStateMimicGen
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: GetActionMimicGen
+    action_len: ${action_len}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  fps: ${fps}
+  repo_ids:
+    - mimicgen_datasets_v30

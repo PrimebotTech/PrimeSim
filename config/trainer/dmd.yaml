@@ -1,0 +1,35 @@
+# @package _global_
+# Stage 3 trainer: asymmetric DMD (PrimeSimDMDModule), from feature/few-step's
+# stage 3 (wan22_asymmetric_dmd). LoRA generator (stage 2) and LoRA critic, frozen
+# bidirectional real score; one AdamW over both LoRAs at a constant LR.
+
+defaults:
+  - base
+  - _self_
+
+train_module:
+  type: PrimeSimDMDModule
+  action_dim: ${action_dim}
+  model: ${model}                              # the model files' paths
+  score_checkpoint_path: ${score_checkpoint}   # the pretrained (bidirectional) model
+  lora_rank: 32
+  lora_target_modules: ""                      # "": every large Linear in the blocks
+  update_ratio: 5                              # a generator step every 5 critic steps
+  real_guidance_scale: 3.0                     # cond + 3 * (cond - uncond)
+  consistency_steps: [1000, 750, 500, 250]     # rollout and sample videos
+  score_min_step: 20
+  score_max_step: 980
+  local_attn_size: 9
+
+optimizer:
+  type: AdamW
+  lr: ${learning_rate}
+  betas: [0.0, 0.999]
+  weight_decay: 1.0e-2
+
+validation:
+  val_steps: 0          # off, as in feature/few-step
+
+trainer:
+  constant_lr: true
+  find_unused_parameters: true   # the generator is idle on critic-only steps

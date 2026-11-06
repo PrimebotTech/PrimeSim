@@ -1,0 +1,230 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAgiBotWorld2026
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+    source_cols: &state_cols
+      left_eef:      [58, 59, 60, 50, 51, 52, 53]
+      left_gripper:  [0]
+      right_eef:     [61, 62, 63, 54, 55, 56, 57]
+      right_gripper: [1]
+      head:          [121, 122, 123]
+      waist:         [127, 128, 129, 130, 131]
+  - type: GetActionAgiBotWorld2026
+    action_len: ${action_len}
+    key_mapper:
+      - action_vector: ("action", "action_mask")
+    source_cols: &action_cols
+      left_eef:      [2, 3, 4, 8, 9, 10, 11]
+      left_gripper:  [0]
+      right_eef:     [5, 6, 7, 12, 13, 14, 15]
+      right_gripper: [1]
+      head:          [30, 31, 32]
+      waist:         [33, 34, 35, 36, 37]
+      chassis:       [38, 39, 43]
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_head: img_1
+      observation.images.hand_left: img_2
+      observation.images.hand_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateAgiBotWorld2026
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+    source_cols: *state_cols
+  - type: GetActionAgiBotWorld2026
+    action_len: ${action_len}
+    key_mapper:
+      - action_vector: ("action", "action_mask")
+    source_cols: *action_cols
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  action_from_state: false
+  fps: ${fps}
+  repo_ids:
+    - ReinforcementLearning/Home/task_12173/ExpertDemonstration/12105429_14973988/data
+    - ReinforcementLearning/Home/task_12173/ExpertDemonstration/14980224_16725943/data
+    - ReinforcementLearning/Home/task_12173/ExpertDemonstration/16725946_16757622/data
+    - ReinforcementLearning/Home/task_12173/ExpertDemonstration/16757632_16828860/data
+    - ReinforcementLearning/Home/task_12173/ExpertDemonstration/16828872_16829290/data
+    - ReinforcementLearning/Home/task_12173/ExpertDemonstration/6133004_12090152/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/10201345_10224373/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/10224656_10261202/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/10261492_11950020/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/11950021_13044181/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/13163044_15028486/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/15423016_16835028/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/16835037_16836531/data
+    - ReinforcementLearning/Home/task_12190/ExpertDemonstration/16836543_16836818/data
+    - ReinforcementLearning/Home/task_12192/ExpertDemonstration/10370585_10379228/data
+    - ReinforcementLearning/Home/task_12192/ExpertDemonstration/10379298_10391385/data
+    - ReinforcementLearning/Home/task_12192/ExpertDemonstration/10391592_16723272/data
+    - ReinforcementLearning/Home/task_12192/ExpertDemonstration/16723286_16831201/data
+    - ReinforcementLearning/Home/task_12192/ExpertDemonstration/16831204_16831410/data
+    - ReinforcementLearning/Home/task_12192/HG-DAgger/20752840_20828447/data
+    - ReinforcementLearning/Home/task_12192/HG-DAgger/20828448_20857244/data
+    - ReinforcementLearning/Home/task_12192/HG-DAgger/20857245_20857259/data
+    - ReinforcementLearning/Home/task_12192/Rollout/10370585_10379228/data
+    - ReinforcementLearning/Home/task_12192/Rollout/10379298_10391385/data
+    - ReinforcementLearning/Home/task_12192/Rollout/10391592_16723272/data
+    - ReinforcementLearning/Home/task_12192/Rollout/16723286_16831201/data
+    - ReinforcementLearning/Home/task_12192/Rollout/16831204_16831410/data
+    - ReinforcementLearning/Home/task_12197/ExpertDemonstration/12266856_16326317/data
+    - ReinforcementLearning/Home/task_12197/ExpertDemonstration/16362860_16665456/data
+    - ReinforcementLearning/Home/task_12197/ExpertDemonstration/16665843_16723143/data
+    - ReinforcementLearning/Home/task_12197/ExpertDemonstration/16723155_16724695/data
+    - ReinforcementLearning/Home/task_12197/ExpertDemonstration/16724701_16829317/data
+    - ReinforcementLearning/Home/task_12197/ExpertDemonstration/16829318_16829522/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/11953165_11958017/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/11958025_11958462/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/11958489_14355537/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/14360736_16671709/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16671913_16732120/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16732127_16735851/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16735854_16736231/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16736236_16742012/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16742050_16747828/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16747869_16756065/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16756067_16758679/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16758731_16835147/data
+    - ReinforcementLearning/Home/task_12208/ExpertDemonstration/16835201_16837066/data
+    - ReinforcementLearning/Home/task_12228/ExpertDemonstration/12492138_16743226/data
+    - ReinforcementLearning/Home/task_12228/ExpertDemonstration/16743229_16835507/data
+    - ReinforcementLearning/Home/task_12228/ExpertDemonstration/16835519_16835802/data
+    - ReinforcementLearning/Home/task_12228/ExpertDemonstration/6161765_12491575/data
+    - ReinforcementLearning/Home/task_12228/Rollout/12492138_16743226/data
+    - ReinforcementLearning/Home/task_12228/Rollout/16743229_16835507/data
+    - ReinforcementLearning/Home/task_12228/Rollout/16835519_20832507/data
+    - ReinforcementLearning/Home/task_12228/Rollout/20832509_20838737/data
+    - ReinforcementLearning/Home/task_12228/Rollout/20838754_20838881/data
+    - ReinforcementLearning/Home/task_12228/Rollout/6161765_12491575/data
+    - ReinforcementLearning/Industry/task_6671/1262796_1265485/data
+    - ReinforcementLearning/Industry/task_6671/1265487_2874125/data
+    - ReinforcementLearning/Industry/task_6673/1267824_1271791/data
+    - ReinforcementLearning/Industry/task_6673/1818092_2783972/data
+    - ReinforcementLearning/Industry/task_6674/1262842_1265743/data
+    - ReinforcementLearning/Industry/task_6674/1265747_1271700/data
+    - ReinforcementLearning/Industry/task_6674/1271704_2877225/data
+    - ReinforcementLearning/Industry/task_6687/1382627_1462997/data
+    - ReinforcementLearning/Industry/task_6687/1497403_1566656/data
+    - ReinforcementLearning/Industry/task_6687/1575695_2779411/data
+    - ReinforcementLearning/Industry/task_6687/PolicyRollout/20709332_20845245/data
+    - ReinforcementLearning/Industry/task_6687/PolicyRollout/20845808_20895544/data
+    - ReinforcementLearning/Industry/task_6688/1310961_1349511/data
+    - ReinforcementLearning/Industry/task_6688/1349723_1375513/data
+    - ReinforcementLearning/Industry/task_6688/1375966_2372538/data
+    - ReinforcementLearning/Industry/task_6688/2372647_3010474/data
+    - ReinforcementLearning/Industry/task_6688/PolicyRollout/20685308_20827777/data
+    - ReinforcementLearning/Industry/task_6688/PolicyRollout/20827779_20831575/data
+    - ReinforcementLearning/Industry/task_6767/1316302_1648426/data
+    - ReinforcementLearning/Industry/task_6767/1648454_1698836/data
+    - ReinforcementLearning/Industry/task_6767/1698911_1715061/data
+    - ReinforcementLearning/Industry/task_6767/1715096_1740242/data
+    - ReinforcementLearning/Industry/task_6767/1740293_1762070/data
+    - ReinforcementLearning/Industry/task_6767/1762193_1799259/data
+    - ReinforcementLearning/Industry/task_6767/1799373_1910471/data
+    - ReinforcementLearning/Industry/task_6767/1911031_2765702/data
+    - ReinforcementLearning/Industry/task_6767/2765804_2881838/data
+    - ReinforcementLearning/Industry/task_6809/1650769_1664814/data
+    - ReinforcementLearning/Industry/task_6809/1664815_1685574/data
+    - ReinforcementLearning/Industry/task_6809/1685584_1694348/data
+    - ReinforcementLearning/Industry/task_6809/1694349_2928543/data
+    - ReinforcementLearning/Industry/task_7093/1660900_1672373/data
+    - ReinforcementLearning/Industry/task_7093/1672383_1676770/data
+    - ReinforcementLearning/Industry/task_7093/1676776_1684612/data
+    - ReinforcementLearning/Industry/task_7093/1684754_1695594/data
+    - ReinforcementLearning/Industry/task_7093/1696773_1704821/data
+    - ReinforcementLearning/Industry/task_7093/1704907_1740261/data
+    - ReinforcementLearning/Industry/task_7093/1740292_1908370/data
+    - ReinforcementLearning/Industry/task_7093/1909510_2896831/data
+    - ReinforcementLearning/Industry/task_7093/2897531_2923583/data
+    - ReinforcementLearning/Industry/task_7093/PolicyRollout/20758141_20758461/data
+    - ReinforcementLearning/Industry/task_7093/PolicyRollout/20758464_20862434/data
+    - ReinforcementLearning/Industry/task_7093/PolicyRollout/20869751_20891093/data

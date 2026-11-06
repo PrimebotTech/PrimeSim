@@ -1,0 +1,141 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.camera_observations.color_images.camera_top: img_1
+      observation.images.camera_observations.color_images.camera_left: img_2
+      observation.images.camera_observations.color_images.camera_right: img_3
+      observation.states.puppet.end_effector_left_pose_align.data: left_eef_state
+      observation.states.puppet.end_effector_left_position_align.data: left_gripper_state
+      observation.states.puppet.end_effector_right_pose_align.data: right_eef_state
+      observation.states.puppet.end_effector_right_position_align.data: right_gripper_state
+      actions.master.end_effector_left_pose_align.data: left_eef_action
+      actions.master.end_effector_left_position_align.data: left_gripper_action
+      actions.master.end_effector_right_pose_align.data: right_eef_action
+      actions.master.end_effector_right_position_align.data: right_gripper_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+    # Rotation of EEF left out because of no rotation recorded in most of the data
+    # Joint not used because of strange behaviour reported in the joint
+  - type: GetStateRobomind
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_gripper_state", "right_eef_state", "right_gripper_state"): state
+    source_cols:
+      left_eef: [0, 1, 2]
+      right_eef: [0, 1, 2]
+  - type: GetActionRobomind
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_gripper_action", "right_eef_action", "right_gripper_action"): ("action", "action_mask")
+    source_cols:
+      left_eef: [0, 1, 2]
+      right_eef: [0, 1, 2]
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the mobile bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the mobile bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.camera_observations.color_images.camera_top: img_1
+      observation.images.camera_observations.color_images.camera_left: img_2
+      observation.images.camera_observations.color_images.camera_right: img_3
+      observation.states.puppet.end_effector_left_pose_align.data: left_eef_state
+      observation.states.puppet.end_effector_left_position_align.data: left_gripper_state
+      observation.states.puppet.end_effector_right_pose_align.data: right_eef_state
+      observation.states.puppet.end_effector_right_position_align.data: right_gripper_state
+      actions.master.end_effector_left_pose_align.data: left_eef_action
+      actions.master.end_effector_left_position_align.data: left_gripper_action
+      actions.master.end_effector_right_pose_align.data: right_eef_action
+      actions.master.end_effector_right_position_align.data: right_gripper_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateRobomind
+    state_len: ${num_frames}
+    key_mapper:
+      - ("left_eef_state", "left_gripper_state", "right_eef_state", "right_gripper_state"): state
+    source_cols:
+      left_eef: [0, 1, 2]
+      right_eef: [0, 1, 2]
+  - type: GetActionRobomind
+    action_len: ${action_len}
+    key_mapper:
+      - ("left_eef_action", "left_gripper_action", "right_eef_action", "right_gripper_action"): ("action", "action_mask")
+    source_cols:
+      left_eef: [0, 1, 2]
+      right_eef: [0, 1, 2]
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the mobile bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the mobile bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - ark_mobile
+  action_sources:
+    - actions.master.end_effector_left_pose_align.data
+    - actions.master.end_effector_left_position_align.data
+    - actions.master.end_effector_right_pose_align.data
+    - actions.master.end_effector_right_position_align.data
+  fps: ${fps}

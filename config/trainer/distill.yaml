@@ -1,0 +1,30 @@
+# @package _global_
+# Stage 2 trainer: consistency distillation (PrimeSimDistillModule), from
+# feature/few-step's stage 2 (wan22_causal_cd). LoRA student, frozen teacher, EMA
+# target; ZeRO-sharded AdamW at a constant LR.
+
+defaults:
+  - base
+  - _self_
+
+train_module:
+  type: PrimeSimDistillModule
+  action_dim: ${action_dim}
+  model: ${model}             # the model files' paths
+  lora_rank: 32
+  lora_target_modules: ""               # "": every large Linear in the DiT blocks
+  ema_decay: 0.99
+  ema_start_step: 200                   # checkpoints are the EMA model after this
+  negative_prompt: ""                   # the teacher's guidance negative
+  consistency_steps: [1000, 750, 500, 250]   # sample videos: 4 steps per chunk
+
+optimizer:
+  type: ZeroRedundancyOptimizer
+  optimizer_type: AdamW
+  lr: ${learning_rate}
+  betas: [0.0, 0.999]
+  weight_decay: 1.0e-2
+  parameters_as_bucket_view: true
+
+trainer:
+  constant_lr: true

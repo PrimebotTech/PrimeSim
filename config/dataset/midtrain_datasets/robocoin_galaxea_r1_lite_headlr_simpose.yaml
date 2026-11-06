@@ -1,0 +1,183 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_head_left_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      action: action
+      observation.state: state
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_head_left_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      action: action
+      observation.state: state
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - Galaxea_R1_Lite_arrange_baai_then_brain
+    - Galaxea_R1_Lite_change_baai_into_brain
+    - Galaxea_R1_Lite_classify_object_five
+    - Galaxea_R1_Lite_classify_object_four
+    - Galaxea_R1_Lite_classify_object_green_tablecloth
+    - Galaxea_R1_Lite_classify_object_six
+    - Galaxea_R1_Lite_classify_object_three
+    - Galaxea_R1_Lite_fold_towel_twice
+    - Galaxea_R1_Lite_mix_blue_yellow_large_test_tube
+    - Galaxea_R1_Lite_mix_blue_yellow_left_large_test_tube
+    - Galaxea_R1_Lite_mix_blue_yellow_left_small_test_tube
+    - Galaxea_R1_Lite_mix_blue_yellow_right
+    - Galaxea_R1_Lite_mix_color
+    - Galaxea_R1_Lite_mix_color_large_test_tube
+    - Galaxea_R1_Lite_mix_color_small_test_tube
+    - Galaxea_R1_Lite_mix_red_blue_large_test_tube
+    - Galaxea_R1_Lite_mix_red_blue_left_large_test_tube
+    - Galaxea_R1_Lite_mix_red_blue_right
+    - Galaxea_R1_Lite_mix_red_yellow_large_test_tube
+    - Galaxea_R1_Lite_mix_red_yellow_left_large_test_tube
+    - Galaxea_R1_Lite_mix_red_yellow_right
+    - Galaxea_R1_Lite_move_mouse
+    - Galaxea_R1_Lite_pour_liquid_mrable_bar_counter
+    - Galaxea_R1_Lite_pour_powder_marble_bar_counter
+    - Galaxea_R1_Lite_pour_solid
+    - Galaxea_R1_Lite_pour_solid_marble_bar_counter
+    - Galaxea_R1_Lite_pour_water_black_tablecloth
+    - Galaxea_R1_Lite_storage_object_blue_plate
+    - Galaxea_R1_Lite_storage_object_brown_basket
+    - Galaxea_R1_Lite_storage_object_brown_bowl
+    - Galaxea_R1_Lite_storage_object_brown_plate
+    - Galaxea_R1_Lite_storage_object_dish
+    - Galaxea_R1_Lite_storage_object_gray_plate
+    - Galaxea_R1_Lite_storage_object_pink_bowl
+    - Galaxea_R1_Lite_storage_object_white_box
+    - Galaxea_R1_Lite_storage_object_yellow_basket
+    - Galaxea_R1_Lite_toggle_drawer_red
+    - Galaxea_R1_Lite_toggle_drawer_yellow
+  action_sources:
+    - action
+    - eef_sim_pose_action
+    - gripper_open_scale_action
+  fps: ${fps}

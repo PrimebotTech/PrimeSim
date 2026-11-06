@@ -1,0 +1,141 @@
+# @package _global_
+
+# libero on its own. Same midtrain_datasets/ entry the midtrain mix uses, so a
+# checkpoint trained here reads its data exactly as the mix would.
+
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.image: img_1
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateLibero
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: LiberoDeltaToRelativeAction
+    action_len: ${action_len}
+    source_fps: 20
+    target_fps: ${fps}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.image: img_1
+      observation.state: state_vec
+      action: action_vec
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+  - type: FillMissingViews
+    source: img_1
+    keys: [img_2, img_3]
+    mode: repeat
+  - type: GetStateLibero
+    state_len: ${num_frames}
+    key_mapper:
+      - ("state_vec"): state
+  - type: LiberoDeltaToRelativeAction
+    action_len: ${action_len}
+    source_fps: 20
+    target_fps: ${fps}
+    key_mapper:
+      - ("action_vec"): ("action", "action_mask")
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+  actions_are_relative: true
+  action_from_state: false
+  raw_action_fps: 20
+  fps: ${fps}
+  repo_ids:
+    - libero_10
+    - libero_90
+    - libero_goal
+    - libero_object
+    - libero_spatial
+train_ratio: 0.99
+valid_ratio: 0.01
+
+datasets:
+  data_loader:
+    type: MidtrainLeRobotDataModuleV3
+    dataset_list:
+      - ${dataset}
+    batch_size: ${batch_size}
+    num_workers: 4
+    num_frames: ${num_frames}
+    fps: ${fps}
+    action_dim: ${action_dim}
+    prefetch_factor: 2
+    train_ratio: ${train_ratio}
+    valid_ratio: ${valid_ratio}
+    stride: 50                    # one random window start per 50 frames per epoch
+    seed: ${seed}
+    decoder_cache_limit: 32

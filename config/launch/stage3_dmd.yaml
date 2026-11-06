@@ -1,0 +1,30 @@
+# @package _global_
+# Stage 3: asymmetric distribution matching distillation of the stage 2 few-step
+# generator against the pretrained (bidirectional) model, through its own causal
+# rollouts. Sample videos use the generator with 4 consistency steps per chunk.
+
+defaults:
+  - ../model: primesim.yaml
+  - ../trainer: dmd.yaml
+  - ../loss: dmd.yaml
+  - _self_
+
+run_name: stage3_dmd              # checkpoints -> models/stage3_dmd
+
+action_dim: 31                    # = SLOT_OFFSETS total; see ../dataset/midtrain.yaml
+state_dim: 31                     # unused by this path, kept equal to action_dim
+learning_rate: 1.0e-4
+max_train_steps: 500_000
+save_steps: 5_000
+save_frame_steps: 1_000
+img_height: 192
+img_width: 256
+fps: 10
+num_frames: 33                    # 9 latent frames = 3 causal chunks
+action_len: 32
+batch_size: 1
+
+# The stage 2 generator to distil, and the pretrained model for the scores.
+model:
+  checkpoint_path: /path/to/checkpoint
+score_checkpoint: /path/to/score_checkpoint

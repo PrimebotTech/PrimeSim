@@ -1,0 +1,268 @@
+# @package _global_
+
+# robotwin on its own. The pipeline is inline here rather than pulled from
+# midtrain_datasets/, so this file is a complete worked example: copy it, swap the
+# transforms for your robot, and you have a dataset config.
+
+# See docs/adapting_a_dataset.md.
+
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_head: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.state: state_vec
+      observation.ee_pose: eef_state
+      action: action_vec
+      action.ee_pose: eef_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateRobomind
+    state_len: ${num_frames}
+    source_cols:
+      left_eef: [0, 1, 2, 3, 4, 5, 6]
+      left_gripper: [6]
+      right_eef: [7, 8, 9, 10, 11, 12, 13]
+      right_gripper: [13]
+    key_mapper:
+      - ("eef_state", "state_vec", "eef_state", "state_vec"): state
+  - type: GetActionRobomind
+    action_len: ${action_len}
+    source_cols:
+      left_eef: [0, 1, 2, 3, 4, 5, 6]
+      left_gripper: [6]
+      right_eef: [7, 8, 9, 10, 11, 12, 13]
+      right_gripper: [13]
+    key_mapper:
+      - ("eef_action", "action_vec", "eef_action", "action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_head: img_1
+      observation.images.cam_left_wrist: img_2
+      observation.images.cam_right_wrist: img_3
+      observation.state: state_vec
+      observation.ee_pose: eef_state
+      action: action_vec
+      action.ee_pose: eef_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateRobomind
+    state_len: ${num_frames}
+    source_cols:
+      left_eef: [0, 1, 2, 3, 4, 5, 6]
+      left_gripper: [6]
+      right_eef: [7, 8, 9, 10, 11, 12, 13]
+      right_gripper: [13]
+    key_mapper:
+      - ("eef_state", "state_vec", "eef_state", "state_vec"): state
+  - type: GetActionRobomind
+    action_len: ${action_len}
+    source_cols:
+      left_eef: [0, 1, 2, 3, 4, 5, 6]
+      left_gripper: [6]
+      right_eef: [7, 8, 9, 10, 11, 12, 13]
+      right_gripper: [13]
+    key_mapper:
+      - ("eef_action", "action_vec", "eef_action", "action_vec"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+
+
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  action_sources:
+    - action
+    - action.ee_pose
+  fps: ${fps}
+  repo_ids:
+    - adjust_bottle_clean_50
+    - adjust_bottle_randomized_500
+    - beat_block_hammer_clean_50
+    - beat_block_hammer_randomized_500
+    - blocks_ranking_rgb_clean_50
+    - blocks_ranking_rgb_randomized_500
+    - blocks_ranking_size_clean_50
+    - blocks_ranking_size_randomized_500
+    - click_alarmclock_clean_50
+    - click_alarmclock_randomized_500
+    - click_bell_clean_50
+    - click_bell_randomized_500
+    - dump_bin_bigbin_clean_50
+    - dump_bin_bigbin_randomized_500
+    - grab_roller_clean_50
+    - grab_roller_randomized_500
+    - handover_block_clean_50
+    - handover_block_randomized_500
+    - handover_mic_clean_50
+    - handover_mic_randomized_500
+    - hanging_mug_clean_50
+    - hanging_mug_randomized_500
+    - lift_pot_clean_50
+    - lift_pot_randomized_500
+    - move_can_pot_clean_50
+    - move_can_pot_randomized_500
+    - move_pillbottle_pad_clean_50
+    - move_pillbottle_pad_randomized_500
+    - move_playingcard_away_clean_50
+    - move_playingcard_away_randomized_500
+    - move_stapler_pad_clean_50
+    - move_stapler_pad_randomized_500
+    - open_laptop_clean_50
+    - open_laptop_randomized_500
+    - open_microwave_clean_50
+    - open_microwave_randomized_500
+    - pick_diverse_bottles_clean_50
+    - pick_diverse_bottles_randomized_500
+    - pick_dual_bottles_clean_50
+    - pick_dual_bottles_randomized_500
+    - place_a2b_left_clean_50
+    - place_a2b_left_randomized_500
+    - place_a2b_right_clean_50
+    - place_a2b_right_randomized_500
+    - place_bread_basket_clean_50
+    - place_bread_basket_randomized_500
+    - place_bread_skillet_clean_50
+    - place_bread_skillet_randomized_500
+    - place_burger_fries_clean_50
+    - place_burger_fries_randomized_500
+    - place_can_basket_clean_50
+    - place_can_basket_randomized_500
+    - place_cans_plasticbox_clean_50
+    - place_cans_plasticbox_randomized_500
+    - place_container_plate_clean_50
+    - place_container_plate_randomized_500
+    - place_dual_shoes_clean_50
+    - place_dual_shoes_randomized_500
+    - place_empty_cup_clean_50
+    - place_empty_cup_randomized_500
+    - place_fan_clean_50
+    - place_fan_randomized_500
+    - place_mouse_pad_clean_50
+    - place_mouse_pad_randomized_500
+    - place_object_basket_clean_50
+    - place_object_basket_randomized_500
+    - place_object_scale_clean_50
+    - place_object_scale_randomized_500
+    - place_object_stand_clean_50
+    - place_object_stand_randomized_500
+    - place_phone_stand_clean_50
+    - place_phone_stand_randomized_500
+    - place_shoe_clean_50
+    - place_shoe_randomized_500
+    - press_stapler_clean_50
+    - press_stapler_randomized_500
+    - put_bottles_dustbin_clean_50
+    - put_bottles_dustbin_randomized_500
+    - put_object_cabinet_clean_50
+    - put_object_cabinet_randomized_500
+    - rotate_qrcode_clean_50
+    - rotate_qrcode_randomized_500
+    - scan_object_clean_50
+    - scan_object_randomized_500
+    - shake_bottle_clean_50
+    - shake_bottle_randomized_500
+    - shake_bottle_horizontally_clean_50
+    - shake_bottle_horizontally_randomized_500
+    - stack_blocks_three_clean_50
+    - stack_blocks_three_randomized_500
+    - stack_blocks_two_clean_50
+    - stack_blocks_two_randomized_500
+    - stack_bowls_three_clean_50
+    - stack_bowls_three_randomized_500
+    - stack_bowls_two_clean_50
+    - stack_bowls_two_randomized_500
+    - stamp_seal_clean_50
+    - stamp_seal_randomized_500
+    - turn_switch_clean_50
+    - turn_switch_randomized_500
+
+
+train_ratio: 0.99
+valid_ratio: 0.01
+
+datasets:
+  data_loader:
+    type: MidtrainLeRobotDataModuleV3
+    dataset_list:
+      - ${dataset}
+    batch_size: ${batch_size}
+    num_workers: 4
+    num_frames: ${num_frames}
+    fps: ${fps}
+    action_dim: ${action_dim}
+    prefetch_factor: 2
+    train_ratio: ${train_ratio}
+    valid_ratio: ${valid_ratio}
+    stride: 50                    # one random window start per 50 frames per epoch
+    seed: ${seed}
+    decoder_cache_limit: 32

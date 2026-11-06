@@ -1,0 +1,7 @@
+# @package _global_
+
+loss:
+  type: ConsistencyDistillationLoss
+  num_steps: 50        # the distillation grid
+  cfg_scale: 3.0       # teacher guidance
+  sigma_shift: 5.0

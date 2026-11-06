@@ -1,0 +1,152 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_view: img_1
+      observation.images.left_view: img_2
+      observation.images.right_view: img_3
+      observation.ee_state: ee_state
+      observation.state: state_vector
+      ee_action: ee_action_vec
+      arm_action: arm_action_vec
+      gripper_action: grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataM1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("ee_state", "state_vector"): state
+  - type: GetActionInternDataM1
+    action_len: ${action_len}
+    key_mapper:
+      - ("ee_action_vec", "grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.top_view: img_1
+      observation.images.left_view: img_2
+      observation.images.right_view: img_3
+      observation.ee_state: ee_state
+      observation.state: state_vector
+      ee_action: ee_action_vec
+      arm_action: arm_action_vec
+      gripper_action: grip_action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateInternDataM1
+    state_len: ${num_frames}
+    key_mapper:
+      - ("ee_state", "state_vector"): state
+  - type: GetActionInternDataM1
+    action_len: ${action_len}
+    key_mapper:
+      - ("ee_action_vec", "grip_action"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the tabletop manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the tabletop manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - "1"
+    - "2"
+    - "3"
+    - "4"
+    - "5"
+    - "6"
+    - "7"
+    - "8"
+    - "9"
+    - "10"
+    - "11"
+    - "12"
+    - "13"
+    - "14"
+    - "15"
+    - "16"
+    - "17"
+    - "18"
+    - "19"
+    - "20"
+    - "21"
+    - "22"
+    - "23"
+    - "24"
+    - "25"
+    - "26"
+    - "27"
+    - "28"
+    - "29"
+    - "30"
+    - "31"
+    - "32"
+    - "33"
+    - "34"
+  action_sources:
+    - ee_action
+    - gripper_action
+  fps: ${fps}

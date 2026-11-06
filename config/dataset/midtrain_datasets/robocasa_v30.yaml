@@ -1,0 +1,467 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.robot0_agentview_left: img_1
+      observation.images.robot0_eye_in_hand: img_2
+      observation.images.robot0_agentview_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateRobocasa
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+  - type: GetActionRobocasa
+    action_len: ${action_len}
+    # row OFFSET into the shared frame window: frames 1..action_len
+    state_len: 1
+    key_mapper:
+      - ("state_vector", "action_vector"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the kitchen manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the kitchen manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.robot0_agentview_left: img_1
+      observation.images.robot0_eye_in_hand: img_2
+      observation.images.robot0_agentview_right: img_3
+      observation.state: state_vector
+      action: action_vector
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetStateRobocasa
+    state_len: ${num_frames}
+    key_mapper:
+      - state_vector: state
+  - type: GetActionRobocasa
+    action_len: ${action_len}
+    # row OFFSET into the shared frame window: frames 1..action_len
+    state_len: 1
+    key_mapper:
+      - ("state_vector", "action_vector"): ("action", "action_mask")
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the kitchen manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the kitchen manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - midtrain/atomic/AdjustToasterOvenTemperature/20250820/lerobot
+    - midtrain/atomic/AdjustWaterTemperature/20250820/lerobot
+    - midtrain/atomic/CheesyBread/20250714/lerobot
+    - midtrain/atomic/CloseBlenderLid/20250822/lerobot
+    - midtrain/atomic/CloseCabinet/20250819/lerobot
+    - midtrain/atomic/CloseDishwasher/20250820/lerobot
+    - midtrain/atomic/CloseDrawer/20250819/lerobot
+    - midtrain/atomic/CloseElectricKettleLid/20250820/lerobot
+    - midtrain/atomic/CloseFridge/20250819/lerobot
+    - midtrain/atomic/CloseFridgeDrawer/20250821/lerobot
+    - midtrain/atomic/CloseMicrowave/20250819/lerobot
+    - midtrain/atomic/CloseOven/20250820/lerobot
+    - midtrain/atomic/CloseStandMixerHead/20250820/lerobot
+    - midtrain/atomic/CloseToasterOvenDoor/20250820/lerobot
+    - midtrain/atomic/CoffeeServeMug/20250819/lerobot
+    - midtrain/atomic/CoffeeSetupMug/20250819/lerobot
+    - midtrain/atomic/LowerHeat/20250805/lerobot
+    - midtrain/atomic/MakeIcedCoffee/20250801/lerobot
+    - midtrain/atomic/OpenBlenderLid/20250822/lerobot
+    - midtrain/atomic/OpenCabinet/20250819/lerobot
+    - midtrain/atomic/OpenDishwasher/20250820/lerobot
+    - midtrain/atomic/OpenDrawer/20250819/lerobot
+    - midtrain/atomic/OpenElectricKettleLid/20250820/lerobot
+    - midtrain/atomic/OpenFridge/20250819/lerobot
+    - midtrain/atomic/OpenFridgeDrawer/20250821/lerobot
+    - midtrain/atomic/OpenMicrowave/20250819/lerobot
+    - midtrain/atomic/OpenOven/20250820/lerobot
+    - midtrain/atomic/OpenStandMixerHead/20250820/lerobot
+    - midtrain/atomic/OpenToasterOvenDoor/20250820/lerobot
+    - midtrain/atomic/PackDessert/20250806/lerobot
+    - midtrain/atomic/PickPlaceCabinetToCounter/20250819/lerobot
+    - midtrain/atomic/PickPlaceCounterToBlender/20250822/lerobot
+    - midtrain/atomic/PickPlaceCounterToCabinet/20250819/lerobot
+    - midtrain/atomic/PickPlaceCounterToDrawer/20250821/lerobot
+    - midtrain/atomic/PickPlaceCounterToMicrowave/20250819/lerobot
+    - midtrain/atomic/PickPlaceCounterToOven/20250819/lerobot
+    - midtrain/atomic/PickPlaceCounterToSink/20250819/lerobot
+    - midtrain/atomic/PickPlaceCounterToStandMixer/20250820/lerobot
+    - midtrain/atomic/PickPlaceCounterToStove/20250819/lerobot
+    - midtrain/atomic/PickPlaceCounterToToasterOven/20250819/lerobot
+    - midtrain/atomic/PickPlaceDrawerToCounter/20250820/lerobot
+    - midtrain/atomic/PickPlaceFridgeDrawerToShelf/20250821/lerobot
+    - midtrain/atomic/PickPlaceFridgeShelfToDrawer/20250821/lerobot
+    - midtrain/atomic/PickPlaceMicrowaveToCounter/20250819/lerobot
+    - midtrain/atomic/PickPlaceSinkToCounter/20250819/lerobot
+    - midtrain/atomic/PickPlaceStoveToCounter/20250819/lerobot
+    - midtrain/atomic/PickPlaceToasterOvenToCounter/20250819/lerobot
+    - midtrain/atomic/PickPlaceToasterToCounter/20250819/lerobot
+    - midtrain/atomic/PreheatOven/20250903/lerobot
+    - midtrain/atomic/SlideDishwasherRack/20250820/lerobot
+    - midtrain/atomic/SlideOvenRack/20250820/lerobot
+    - midtrain/atomic/SlideToasterOvenRack/20250820/lerobot
+    - midtrain/atomic/StartCoffeeMachine/20250819/lerobot
+    - midtrain/atomic/TurnOffMicrowave/20250819/lerobot
+    - midtrain/atomic/TurnOffSinkFaucet/20250819/lerobot
+    - midtrain/atomic/TurnOffStove/20250819/lerobot
+    - midtrain/atomic/TurnOnBlender/20250822/lerobot
+    - midtrain/atomic/TurnOnElectricKettle/20250820/lerobot
+    - midtrain/atomic/TurnOnMicrowave/20250819/lerobot
+    - midtrain/atomic/TurnOnSinkFaucet/20250819/lerobot
+    - midtrain/atomic/TurnOnStove/20250819/lerobot
+    - midtrain/atomic/TurnOnToaster/20250820/lerobot
+    - midtrain/atomic/TurnOnToasterOven/20250820/lerobot
+    - midtrain/atomic/TurnSinkSpout/20250820/lerobot
+    - midtrain/composite/AddIceCubes/20250829/lerobot
+    - midtrain/composite/AddLemonToFish/20250804/lerobot
+    - midtrain/composite/AddMarshmallow/20250805/lerobot
+    - midtrain/composite/AddSugarCubes/20250804/lerobot
+    - midtrain/composite/AddSweetener/20250829/lerobot
+    - midtrain/composite/AdjustHeat/20250724/lerobot
+    - midtrain/composite/AfterwashSorting/20250723/lerobot
+    - midtrain/composite/AirDryFruit/20250718/lerobot
+    - midtrain/composite/AlcoholServingPrep/20250724/lerobot
+    - midtrain/composite/AlignSilverware/20250801/lerobot
+    - midtrain/composite/ArrangeBreadBowl/20250903/lerobot
+    - midtrain/composite/ArrangeBuffetDessert/20250730/lerobot
+    - midtrain/composite/ArrangeDrinkware/20250902/lerobot
+    - midtrain/composite/ArrangeTeaAccompaniments/20250805/lerobot
+    - midtrain/composite/ArrangeUtensilsByType/20250805/lerobot
+    - midtrain/composite/ArrangeVegetables/20250714/lerobot
+    - midtrain/composite/AssembleCookingArray/20250721/lerobot
+    - midtrain/composite/BalancedMealPrep/20250729/lerobot
+    - midtrain/composite/BeverageOrganization/20250725/lerobot
+    - midtrain/composite/BeverageSorting/20250718/lerobot
+    - midtrain/composite/BlendIngredients/20250829/lerobot
+    - midtrain/composite/BlendMarinade/20250902/lerobot
+    - midtrain/composite/BowlAndCup/20250715/lerobot
+    - midtrain/composite/BreadAndCheese/20250723/lerobot
+    - midtrain/composite/BreadSetupSlicing/20250719/lerobot
+    - midtrain/composite/BuildAppetizerPlate/20250804/lerobot
+    - midtrain/composite/ButterOnPan/20250724/lerobot
+    - midtrain/composite/CandleCleanup/20250721/lerobot
+    - midtrain/composite/CerealAndBowl/20250725/lerobot
+    - midtrain/composite/ChooseMeasuringCup/20250718/lerobot
+    - midtrain/composite/ChooseRipeFruit/20250901/lerobot
+    - midtrain/composite/CleanBoard/20250729/lerobot
+    - midtrain/composite/CleanMicrowave/20250724/lerobot
+    - midtrain/composite/ClearClutter/20250723/lerobot
+    - midtrain/composite/ClearCuttingBoard/20250719/lerobot
+    - midtrain/composite/ClearFoodWaste/20250728/lerobot
+    - midtrain/composite/ClearFreezer/20250807/lerobot
+    - midtrain/composite/ClearReceptaclesForCleaning/20250721/lerobot
+    - midtrain/composite/ClearSink/20250717/lerobot
+    - midtrain/composite/ClearSinkArea/20250728/lerobot
+    - midtrain/composite/ClearSinkSpace/20250718/lerobot
+    - midtrain/composite/CollectWashingSupplies/20250717/lerobot
+    - midtrain/composite/ColorfulSalsa/20250719/lerobot
+    - midtrain/composite/CondimentCollection/20250721/lerobot
+    - midtrain/composite/CookieDoughPrep/20250728/lerobot
+    - midtrain/composite/CoolBakedCake/20250729/lerobot
+    - midtrain/composite/CoolKettle/20250717/lerobot
+    - midtrain/composite/CreateChildFriendlyFridge/20250826/lerobot
+    - midtrain/composite/CupcakeCleanup/20250716/lerobot
+    - midtrain/composite/CutBuffetPizza/20250730/lerobot
+    - midtrain/composite/DateNight/20250725/lerobot
+    - midtrain/composite/DefrostByCategory/20250716/lerobot
+    - midtrain/composite/DeliverBrewedCoffee/20250904/lerobot
+    - midtrain/composite/DeliverStraw/20250723/lerobot
+    - midtrain/composite/DessertAssembly/20250719/lerobot
+    - midtrain/composite/DessertUpgrade/20250724/lerobot
+    - midtrain/composite/DisplayMeatVariety/20250804/lerobot
+    - midtrain/composite/DistributeChicken/20250807/lerobot
+    - midtrain/composite/DivideBasins/20250718/lerobot
+    - midtrain/composite/DivideBuffetTrays/20250730/lerobot
+    - midtrain/composite/DrainVeggies/20250723/lerobot
+    - midtrain/composite/DrinkwareConsolidation/20250723/lerobot
+    - midtrain/composite/DryDishes/20250714/lerobot
+    - midtrain/composite/DryDrinkware/20250714/lerobot
+    - midtrain/composite/DumpLeftovers/20250902/lerobot
+    - midtrain/composite/FillBlenderJug/20250902/lerobot
+    - midtrain/composite/FillKettle/20250721/lerobot
+    - midtrain/composite/FilterMicrowavableItem/20250901/lerobot
+    - midtrain/composite/FoodCleanup/20250725/lerobot
+    - midtrain/composite/FreezeBottledWaters/20250807/lerobot
+    - midtrain/composite/FreezeCookedFood/20250804/lerobot
+    - midtrain/composite/FreezeIceTray/20250807/lerobot
+    - midtrain/composite/FreshProduceOrganization/20250828/lerobot
+    - midtrain/composite/FryingPanAdjustment/20250714/lerobot
+    - midtrain/composite/GarnishCupcake/20250804/lerobot
+    - midtrain/composite/GatherCuttingTools/20250730/lerobot
+    - midtrain/composite/GatherMarinadeIngredients/20250729/lerobot
+    - midtrain/composite/GatherVegetables/20250805/lerobot
+    - midtrain/composite/GetToastedBread/20250731/lerobot
+    - midtrain/composite/HeatMug/20250725/lerobot
+    - midtrain/composite/HeatMultipleWater/20250714/lerobot
+    - midtrain/composite/HotDogSetup/20250805/lerobot
+    - midtrain/composite/JuiceFruitReamer/20250902/lerobot
+    - midtrain/composite/KettleBoiling/20250725/lerobot
+    - midtrain/composite/LemonSeasoningFish/20250731/lerobot
+    - midtrain/composite/LineUpCondiments/20250731/lerobot
+    - midtrain/composite/LoadCondimentsInFridge/20250826/lerobot
+    - midtrain/composite/LoadDishwasher/20250717/lerobot
+    - midtrain/composite/LoadFridgeByType/20250827/lerobot
+    - midtrain/composite/LoadFridgeFifo/20250826/lerobot
+    - midtrain/composite/LoadPreparedFood/20250827/lerobot
+    - midtrain/composite/MakeFruitBowl/20250723/lerobot
+    - midtrain/composite/MakeLoadedPotato/20250724/lerobot
+    - midtrain/composite/MatchCupAndDrink/20250723/lerobot
+    - midtrain/composite/MaximizeFreezerSpace/20250807/lerobot
+    - midtrain/composite/MealPrepStaging/20250718/lerobot
+    - midtrain/composite/MeatSkewerAssembly/20250804/lerobot
+    - midtrain/composite/MeatTransfer/20250721/lerobot
+    - midtrain/composite/MicrowaveCorrectMeal/20250901/lerobot
+    - midtrain/composite/MicrowaveDefrostMeat/20250901/lerobot
+    - midtrain/composite/MicrowaveThawing/20250715/lerobot
+    - midtrain/composite/MicrowaveThawingFridge/20250730/lerobot
+    - midtrain/composite/MixCakeFrosting/20250728/lerobot
+    - midtrain/composite/MixedFruitPlatter/20250804/lerobot
+    - midtrain/composite/MoveFreezerToFridge/20250827/lerobot
+    - midtrain/composite/MoveFridgeToFreezer/20250807/lerobot
+    - midtrain/composite/MoveToCounter/20250729/lerobot
+    - midtrain/composite/MoveToFreezerDrawer/20250902/lerobot
+    - midtrain/composite/MultistepSteaming/20250724/lerobot
+    - midtrain/composite/OrganizeBakingIngredients/20250725/lerobot
+    - midtrain/composite/OrganizeCleaningSupplies/20250723/lerobot
+    - midtrain/composite/OrganizeCoffeeCondiments/20250731/lerobot
+    - midtrain/composite/OrganizeCondiments/20250731/lerobot
+    - midtrain/composite/OrganizeMetallicUtensils/20250806/lerobot
+    - midtrain/composite/OrganizeMugsByHandle/20250718/lerobot
+    - midtrain/composite/OrganizeVegetables/20250719/lerobot
+    - midtrain/composite/OvenBroilFish/20250805/lerobot
+    - midtrain/composite/PackFoodByTemp/20250805/lerobot
+    - midtrain/composite/PackFruitContainer/20250806/lerobot
+    - midtrain/composite/PackIdenticalLunches/20250805/lerobot
+    - midtrain/composite/PastryDisplay/20250724/lerobot
+    - midtrain/composite/PlaceBeveragesTogether/20250730/lerobot
+    - midtrain/composite/PlaceDishesBySink/20250717/lerobot
+    - midtrain/composite/PlaceEqualIceCubes/20250801/lerobot
+    - midtrain/composite/PlaceFoodInBowls/20250725/lerobot
+    - midtrain/composite/PlaceIceInCup/20250801/lerobot
+    - midtrain/composite/PlaceMeatInMarinade/20250728/lerobot
+    - midtrain/composite/PlaceMicrowaveSafeItem/20250901/lerobot
+    - midtrain/composite/PlaceStraw/20250829/lerobot
+    - midtrain/composite/PlaceVegetablesEvenly/20250724/lerobot
+    - midtrain/composite/PlaceVeggiesInDrawer/20250826/lerobot
+    - midtrain/composite/PlateSteakMeal/20250902/lerobot
+    - midtrain/composite/PlateStoreDinner/20250730/lerobot
+    - midtrain/composite/PortionFruitBowl/20250807/lerobot
+    - midtrain/composite/PortionInTupperware/20250807/lerobot
+    - midtrain/composite/PortionOnSize/20250806/lerobot
+    - midtrain/composite/PortionYogurt/20250806/lerobot
+    - midtrain/composite/PreRinseStation/20250717/lerobot
+    - midtrain/composite/PreSoakPan/20250715/lerobot
+    - midtrain/composite/PreheatPot/20250724/lerobot
+    - midtrain/composite/PrepForSanitizing/20250715/lerobot
+    - midtrain/composite/PrepForTenderizing/20250721/lerobot
+    - midtrain/composite/PrepFridgeForCleaning/20250805/lerobot
+    - midtrain/composite/PrepMarinatingMeat/20250714/lerobot
+    - midtrain/composite/PrepSinkForCleaning/20250806/lerobot
+    - midtrain/composite/PrepareBroilingStation/20250804/lerobot
+    - midtrain/composite/PrepareCheeseStation/20250728/lerobot
+    - midtrain/composite/PrepareCocktailStation/20250801/lerobot
+    - midtrain/composite/PrepareCoffee/20250716/lerobot
+    - midtrain/composite/PrepareDishwasher/20250717/lerobot
+    - midtrain/composite/PrepareDrinkStation/20250723/lerobot
+    - midtrain/composite/PrepareSausageCheese/20250805/lerobot
+    - midtrain/composite/PrepareSmoothie/20250829/lerobot
+    - midtrain/composite/PrepareSoupServing/20250724/lerobot
+    - midtrain/composite/PrepareStoringLeftovers/20250903/lerobot
+    - midtrain/composite/PrepareToast/20250714/lerobot
+    - midtrain/composite/PressChicken/20250717/lerobot
+    - midtrain/composite/PrewashFoodAssembly/20250714/lerobot
+    - midtrain/composite/PrewashFoodSorting/20250718/lerobot
+    - midtrain/composite/QuickThaw/20250725/lerobot
+    - midtrain/composite/RearrangeFridgeItems/20250827/lerobot
+    - midtrain/composite/RecycleBottlesBySize/20250717/lerobot
+    - midtrain/composite/RecycleSodaCans/20250719/lerobot
+    - midtrain/composite/RecycleStackedYogurt/20250717/lerobot
+    - midtrain/composite/RefillCondimentStation/20250827/lerobot
+    - midtrain/composite/ReheatMeal/20250901/lerobot
+    - midtrain/composite/RemoveBroiledFish/20250805/lerobot
+    - midtrain/composite/RemoveCuttingBoardItems/20250805/lerobot
+    - midtrain/composite/ReorganizeFrozenVegetables/20250807/lerobot
+    - midtrain/composite/ResetCabinetDoors/20250731/lerobot
+    - midtrain/composite/RestockBowls/20250725/lerobot
+    - midtrain/composite/RestockCannedFood/20250827/lerobot
+    - midtrain/composite/RestockPantry/20250714/lerobot
+    - midtrain/composite/RestockSinkSupplies/20250827/lerobot
+    - midtrain/composite/RetrieveIceTray/20250801/lerobot
+    - midtrain/composite/RetrieveMeat/20250728/lerobot
+    - midtrain/composite/ReturnHeatedFood/20250901/lerobot
+    - midtrain/composite/ReturnWashingSupplies/20250717/lerobot
+    - midtrain/composite/RinseBowls/20250718/lerobot
+    - midtrain/composite/RinseCuttingBoard/20250805/lerobot
+    - midtrain/composite/RinseSinkBasin/20250728/lerobot
+    - midtrain/composite/RotatePan/20250717/lerobot
+    - midtrain/composite/SanitizePrepCuttingBoard/20250806/lerobot
+    - midtrain/composite/ScalePortioning/20250807/lerobot
+    - midtrain/composite/ScrubBowl/20250717/lerobot
+    - midtrain/composite/ScrubCuttingBoard/20250805/lerobot
+    - midtrain/composite/SearingMeat/20250716/lerobot
+    - midtrain/composite/SeasoningSpiceSetup/20250728/lerobot
+    - midtrain/composite/SeasoningSteak/20250731/lerobot
+    - midtrain/composite/ServeSteak/20250718/lerobot
+    - midtrain/composite/ServeTea/20250805/lerobot
+    - midtrain/composite/ServeWarmCroissant/20250731/lerobot
+    - midtrain/composite/SetBowlsForSoup/20250716/lerobot
+    - midtrain/composite/SetUpCuttingStation/20250729/lerobot
+    - midtrain/composite/SetUpSpiceStation/20250731/lerobot
+    - midtrain/composite/SetupBowls/20250801/lerobot
+    - midtrain/composite/SetupButterPlate/20250801/lerobot
+    - midtrain/composite/SetupFruitBowl/20250801/lerobot
+    - midtrain/composite/SetupFrying/20250724/lerobot
+    - midtrain/composite/SetupSodaBowl/20250801/lerobot
+    - midtrain/composite/SetupWineGlasses/20250801/lerobot
+    - midtrain/composite/ShakePan/20250724/lerobot
+    - midtrain/composite/SimmeringSauce/20250715/lerobot
+    - midtrain/composite/SizeSorting/20250714/lerobot
+    - midtrain/composite/SnackSorting/20250718/lerobot
+    - midtrain/composite/SoakSponge/20250718/lerobot
+    - midtrain/composite/SortingCleanup/20250723/lerobot
+    - midtrain/composite/SpicyMarinade/20250715/lerobot
+    - midtrain/composite/StackBowlsCabinet/20250717/lerobot
+    - midtrain/composite/StackBowlsInSink/20250714/lerobot
+    - midtrain/composite/StackCans/20250731/lerobot
+    - midtrain/composite/StartElectricKettle/20250717/lerobot
+    - midtrain/composite/SteamInMicrowave/20250714/lerobot
+    - midtrain/composite/StirVegetables/20250807/lerobot
+    - midtrain/composite/StockingBreakfastFoods/20250715/lerobot
+    - midtrain/composite/StoreDumplings/20250804/lerobot
+    - midtrain/composite/StoreLeftoversByType/20250804/lerobot
+    - midtrain/composite/StoreLeftoversInBowl/20250804/lerobot
+    - midtrain/composite/StrainerSetup/20250805/lerobot
+    - midtrain/composite/SweetSavoryToastSetup/20250721/lerobot
+    - midtrain/composite/SweetenCoffee/20250904/lerobot
+    - midtrain/composite/SweetenHotChocolate/20250805/lerobot
+    - midtrain/composite/ThawInSink/20250721/lerobot
+    - midtrain/composite/TiltPan/20250808/lerobot
+    - midtrain/composite/ToastBagel/20250731/lerobot
+    - midtrain/composite/ToastBaguette/20250731/lerobot
+    - midtrain/composite/ToastOnCorrectRack/20250731/lerobot
+    - midtrain/composite/TongBuffetSetup/20250730/lerobot
+    - midtrain/composite/TransportCookware/20250717/lerobot
+    - midtrain/composite/TurnOffSimmeredSauceHeat/20250728/lerobot
+    - midtrain/composite/VeggieDipPrep/20250718/lerobot
+    - midtrain/composite/WarmCroissant/20250724/lerobot
+    - midtrain/composite/WashFish/20250805/lerobot
+    - midtrain/composite/WashLettuce/20250723/lerobot
+    - midtrain/composite/YogurtDelightPrep/20250725/lerobot
+    - target/atomic/CloseBlenderLid/20250822/lerobot
+    - target/atomic/CloseFridge/20250816/lerobot
+    - target/atomic/CloseToasterOvenDoor/20250818/lerobot
+    - target/atomic/CoffeeSetupMug/20250813/lerobot
+    - target/atomic/OpenCabinet/20250813/lerobot
+    - target/atomic/OpenDrawer/20250816/lerobot
+    - target/atomic/OpenStandMixerHead/20250818/lerobot
+    - target/atomic/PickPlaceCounterToCabinet/20250811/lerobot
+    - target/atomic/PickPlaceCounterToStove/20250818/lerobot
+    - target/atomic/PickPlaceDrawerToCounter/20250820/lerobot
+    - target/atomic/PickPlaceSinkToCounter/20250813/lerobot
+    - target/atomic/PickPlaceToasterToCounter/20250817/lerobot
+    - target/atomic/SlideDishwasherRack/20250820/lerobot
+    - target/atomic/TurnOffStove/20250812/lerobot
+    - target/atomic/TurnOnElectricKettle/20250817/lerobot
+    - target/atomic/TurnOnMicrowave/20250813/lerobot
+    - target/atomic/TurnOnSinkFaucet/20250812/lerobot
+    - target/composite/ArrangeBreadBasket/20250809/lerobot
+    - target/composite/ArrangeTea/20250812/lerobot
+    - target/composite/BreadSelection/20250815/lerobot
+    - target/composite/CategorizeCondiments/20250814/lerobot
+    - target/composite/CuttingToolSelection/20250814/lerobot
+    - target/composite/DeliverStraw/20250813/lerobot
+    - target/composite/GarnishPancake/20250815/lerobot
+    - target/composite/GatherTableware/20250815/lerobot
+    - target/composite/GetToastedBread/20250812/lerobot
+    - target/composite/HeatKebabSandwich/20250813/lerobot
+    - target/composite/KettleBoiling/20250814/lerobot
+    - target/composite/LoadDishwasher/20250811/lerobot
+    - target/composite/MakeIceLemonade/20250813/lerobot
+    - target/composite/PackIdenticalLunches/20250815/lerobot
+    - target/composite/PanTransfer/20250817/lerobot
+    - target/composite/PortionHotDogs/20250816/lerobot
+    - target/composite/PreSoakPan/20250809/lerobot
+    - target/composite/PrepareCoffee/20250812/lerobot
+    - target/composite/RecycleBottlesByType/20250812/lerobot
+    - target/composite/RinseSinkBasin/20250816/lerobot
+    - target/composite/ScrubCuttingBoard/20250816/lerobot
+    - target/composite/SearingMeat/20250812/lerobot
+    - target/composite/SeparateFreezerRack/20250815/lerobot
+    - target/composite/SetUpCuttingStation/20250817/lerobot
+    - target/composite/StackBowlsCabinet/20250815/lerobot
+    - target/composite/SteamInMicrowave/20250814/lerobot
+    - target/composite/StirVegetables/20250814/lerobot
+    - target/composite/StoreLeftoversInBowl/20250813/lerobot
+    - target/composite/WaffleReheat/20250817/lerobot
+    - target/composite/WashFruitColander/20250811/lerobot
+    - target/composite/WashLettuce/20250814/lerobot
+    - target/composite/WeighIngredients/20250812/lerobot
+  action_sources:
+    - action
+    - observation.state
+  # both columns GetActionRobocasa reads keep the whole frame window; the transform
+  # slices the action rows out of it, and GetStateRobocasa takes all num_frames rows
+  action_from_state: true
+  fps: ${fps}

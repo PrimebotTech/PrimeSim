@@ -1,0 +1,215 @@
+train_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_head_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      observation.state: state
+      action: action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+valid_pipeline:
+  - type: RefactorLerobot
+    key_mapper:
+      observation.images.cam_head_rgb: img_1
+      observation.images.cam_left_wrist_rgb: img_2
+      observation.images.cam_right_wrist_rgb: img_3
+      eef_sim_pose_state: eef_pose_state
+      eef_sim_pose_action: eef_pose_action
+      gripper_open_scale_state: grip_state
+      gripper_open_scale_action: grip_action
+      observation.state: state
+      action: action
+  - type: AlignFormatLerobot
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: GetActionRoboCoin
+    action_len: ${action_len}
+    key_mapper:
+      - ("eef_pose_action", "action", "grip_action"): ("action", "action_mask")
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: GetStateRoboCoin
+    state_len: ${num_frames}
+    key_mapper:
+      - ("eef_pose_state", "state", "grip_state"): state
+    left_pos: [0, 1, 2]
+    left_euler: [3, 4, 5]
+    left_grip: 0
+    right_pos: [6, 7, 8]
+    right_euler: [9, 10, 11]
+    right_grip: 1
+  - type: ToRelativeAction
+    key_mapper:
+      - ("action", "state", "action_mask"): action
+  - type: GetTextLerobot
+    default_text: Complete the bimanual manipulation task.
+  - type: TransformPrompt
+    default_prompt: Complete the bimanual manipulation task.
+    key_mapper:
+      - text: prompt
+  - type: ResizeImages
+    height: ${img_height}
+    width: ${img_width}
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ImgNormalize
+    key_mapper:
+      img_1: img_1
+      img_2: img_2
+      img_3: img_3
+  - type: ConcatenateMultiview
+    key_mapper:
+      - ("img_1", "img_2", "img_3"): videos
+  - type: Gather
+    keys: [
+      videos,
+      state, action, action_mask,
+      prompt,
+    ]
+dataset:
+  type: OpenLeRobotMixedDatasetV3
+  root: /path/to/root/dir
+  train_pipeline: ${..train_pipeline}
+  valid_pipeline: ${..valid_pipeline}
+  repo_ids:
+    - Agilex_Cobot_Magic_classify_objects_eight
+    - Agilex_Cobot_Magic_classify_objects_six
+    - Agilex_Cobot_Magic_close_drawer_bottom
+    - Agilex_Cobot_Magic_close_drawer_top
+    - Agilex_Cobot_Magic_close_drawer_upper
+    - Agilex_Cobot_Magic_erase_board
+    - Agilex_Cobot_Magic_erase_board_left
+    - Agilex_Cobot_Magic_erase_board_left_side
+    - Agilex_Cobot_Magic_erase_board_passing_left_to_right
+    - Agilex_Cobot_Magic_erase_board_passing_right_to_left
+    - Agilex_Cobot_Magic_erase_board_right
+    - Agilex_Cobot_Magic_fold_T_shirts
+    - Agilex_Cobot_Magic_fold_jeans_shorts_children_s
+    - Agilex_Cobot_Magic_fold_short_sleeve_black
+    - Agilex_Cobot_Magic_fold_short_sleeve_white
+    - Agilex_Cobot_Magic_fold_shorts_khaki
+    - Agilex_Cobot_Magic_fold_towel
+    - Agilex_Cobot_Magic_fold_towel_blue_tray
+    - Agilex_Cobot_Magic_fold_towel_grey_tray
+    - Agilex_Cobot_Magic_fold_towel_pink_tray
+    - Agilex_Cobot_Magic_fold_towel_tray_twice
+    - Agilex_Cobot_Magic_fold_towel_yellow_tray
+    - Agilex_Cobot_Magic_move_mouse
+    - Agilex_Cobot_Magic_move_mouse_pen
+    - Agilex_Cobot_Magic_move_mouse_pen_black_tablecloth
+    - Agilex_Cobot_Magic_move_mouse_pen_green_tablecloth
+    - Agilex_Cobot_Magic_move_mouse_pen_khaki_tablecloth
+    - Agilex_Cobot_Magic_move_mouse_pen_red_tablecloth
+    - Agilex_Cobot_Magic_move_object
+    - Agilex_Cobot_Magic_move_object_beige_tablecloth
+    - Agilex_Cobot_Magic_move_object_black_tablecloth
+    - Agilex_Cobot_Magic_move_object_green_tablecloth
+    - Agilex_Cobot_Magic_move_object_red_tablecloth
+    - Agilex_Cobot_Magic_move_pencil_sharpener
+    - Agilex_Cobot_Magic_open_drawer_bottom
+    - Agilex_Cobot_Magic_organize_desk_fail
+    - Agilex_Cobot_Magic_organize_test_tube
+    - Agilex_Cobot_Magic_pass_object_left_to_right_black_tablecloth
+    - Agilex_Cobot_Magic_pass_object_left_to_right_green_tablecloth
+    - Agilex_Cobot_Magic_pass_object_left_to_right_khaki_tablecloth
+    - Agilex_Cobot_Magic_pass_object_left_to_right_white_tablecloth
+    - Agilex_Cobot_Magic_pass_object_right_to_left_black_tablecloth
+    - Agilex_Cobot_Magic_pass_object_right_to_left_green_tablecloth
+    - Agilex_Cobot_Magic_pass_object_right_to_left_khaki_tablecloth
+    - Agilex_Cobot_Magic_pass_object_right_to_left_red_tablecloth
+    - Agilex_Cobot_Magic_pass_object_right_to_left_white_tablecloth
+    - Agilex_Cobot_Magic_pour_drink_bottle_cup
+    - Agilex_Cobot_Magic_pour_drink_bottle_cup_cup
+    - Agilex_Cobot_Magic_pour_water_bottle_cup_cup
+    - Agilex_Cobot_Magic_pour_water_middle_cup
+    - Agilex_Cobot_Magic_pour_water_pink_cup
+    - Agilex_Cobot_Magic_seal_bag
+    - Agilex_Cobot_Magic_storage_bread_basket
+    - Agilex_Cobot_Magic_storage_fruit_basket
+    - Agilex_Cobot_Magic_storage_fruit_bowl
+    - Agilex_Cobot_Magic_storage_lemon_mango
+    - Agilex_Cobot_Magic_storage_object
+    - Agilex_Cobot_Magic_storage_object_basket
+    - Agilex_Cobot_Magic_storage_object_closest
+    - Agilex_Cobot_Magic_storage_object_closest_apple
+    - Agilex_Cobot_Magic_storage_object_closest_cube
+    - Agilex_Cobot_Magic_storage_object_left
+    - Agilex_Cobot_Magic_storage_object_red_tablecloth
+    - Agilex_Cobot_Magic_storage_orange_basket_left
+    - Agilex_Cobot_Magic_storage_orange_basket_right
+    - Agilex_Cobot_Magic_storage_orange_white_bag
+    - Agilex_Cobot_Magic_storage_peach_brown_bag
+    - Agilex_Cobot_Magic_storage_peach_left
+    - Agilex_Cobot_Magic_storage_peach_right
+    - Agilex_Cobot_Magic_storage_peach_white_bag
+  action_sources:
+    - action
+    - eef_sim_pose_action
+    - gripper_open_scale_action
+  fps: ${fps}
