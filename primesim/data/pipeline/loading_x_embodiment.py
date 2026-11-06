@@ -1,4 +1,3 @@
-from typing import Any, Dict
 
 import numpy as np
 import torch
@@ -3457,7 +3456,9 @@ class GetActionWorldOracle(WideVectorWriter):
         "chassis": [38, 39, 40],
     }
 
-    def __init__(self, key_mapper, action_len, slot_cols=None, source_cols=None) -> None:
+    def __init__(
+        self, key_mapper, action_len, slot_cols=None, source_cols=None
+    ) -> None:
         self._init(key_mapper, action_len, slot_cols, source_cols)
 
 

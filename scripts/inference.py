@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -53,8 +52,8 @@ def require_dir(path):
 
 def load_demo(demo_dir):
     import numpy as np
-    from PIL import Image
     import torch
+    from PIL import Image
 
     image = np.asarray(Image.open(demo_dir / "first_frame.png").convert("RGB"))
     expected_shape = (NUM_VIEWS * HEIGHT, WIDTH, 3)
@@ -79,9 +78,9 @@ def load_demo(demo_dir):
         segments = 1
     else:
         continuation = CONTINUATION_FRAMES - 1
-        segments = 1 + (
-            model_frames - OPENING_FRAMES + continuation - 1
-        ) // continuation
+        segments = (
+            1 + (model_frames - OPENING_FRAMES + continuation - 1) // continuation
+        )
 
     opening_actions = OPENING_FRAMES - 1
     continuation_actions = CONTINUATION_FRAMES - 1
@@ -105,7 +104,6 @@ def load_demo(demo_dir):
 
 def build_pipeline(args):
     import torch
-
     from primesim.pipeline import PrimeSimPipeline
 
     if not torch.cuda.is_available():
@@ -128,9 +126,13 @@ def generate(pipe, demo):
     import torch
     from einops import rearrange
 
-    first_action = demo["actions"][0].unsqueeze(0).to(
-        device=pipe.device,
-        dtype=pipe.torch_dtype,
+    first_action = (
+        demo["actions"][0]
+        .unsqueeze(0)
+        .to(
+            device=pipe.device,
+            dtype=pipe.torch_dtype,
+        )
     )
     prepared = {
         "prompt": [PROMPT],

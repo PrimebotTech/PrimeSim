@@ -188,17 +188,16 @@ class AmortizedBatchSampler(Sampler):
                 "start_epoch": int(raw["start_epoch"]),
                 "min_segments": int(raw["min_segments"]),
                 "max_segments": int(raw["max_segments"]),
-                "length_sampling_power": float(
-                    raw.get("length_sampling_power", 0.0)
-                ),
+                "length_sampling_power": float(raw.get("length_sampling_power", 0.0)),
             }
             if stage["start_epoch"] < 0 or stage["min_segments"] < 1:
                 raise ValueError("Curriculum epochs and segment counts must be valid.")
             if stage["max_segments"] < stage["min_segments"]:
                 raise ValueError("max_segments must be >= min_segments.")
-            if not np.isfinite(stage["length_sampling_power"]) or stage[
-                "length_sampling_power"
-            ] < 0:
+            if (
+                not np.isfinite(stage["length_sampling_power"])
+                or stage["length_sampling_power"] < 0
+            ):
                 raise ValueError(
                     "length_sampling_power must be finite and non-negative."
                 )
@@ -227,9 +226,7 @@ class AmortizedBatchSampler(Sampler):
         if duration + 1e-9 < self.opening_delta:
             return np.empty(0, dtype=np.int64)
         max_fit = 1 + int(
-            np.floor(
-                (duration - self.opening_delta) / self.continuation_delta + 1e-9
-            )
+            np.floor((duration - self.opening_delta) / self.continuation_delta + 1e-9)
         )
         minimum = 1 if stage is None else stage["min_segments"]
         maximum = max_fit if stage is None else min(stage["max_segments"], max_fit)

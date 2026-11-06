@@ -57,9 +57,7 @@ class AmortizedConcatDataset(ConcatDataset):
         item["episode_end"] = bool(metadata.episode_end)
         item["amortized_episode_id"] = int(metadata.episode_id)
         item["amortized_segment_index"] = int(metadata.segment_index)
-        item["amortized_episode_num_segments"] = int(
-            metadata.episode_num_segments
-        )
+        item["amortized_episode_num_segments"] = int(metadata.episode_num_segments)
         return item
 
     def __getitems__(self, indices):
@@ -229,9 +227,7 @@ class XEmbDataModule:
                 raw_len = raw_action_len_for_model(
                     self.sample_action_len, fps, float(raw_action_fps)
                 )
-                action_ts = [
-                    index / float(raw_action_fps) for index in range(raw_len)
-                ]
+                action_ts = [index / float(raw_action_fps) for index in range(raw_len)]
 
             observation_keys = list(train_pipeline[0]["key_mapper"].keys())
             delta_timestamps = dict.fromkeys(observation_keys, frame_ts)

@@ -7,17 +7,18 @@ import os
 # reserved-but-unallocated memory used to sit next to the validation forward.
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
-from typing import Dict, Any
 from datetime import timedelta
+from typing import Any, Dict
 
-import torch
-import torch.distributed as dist
 import accelerate
 import hydra
-from mmengine import Config, DATASETS
-from mmengine.registry import MODELS, OPTIMIZERS
 import mmengine.optim  # noqa: F401  -- registers torch's optimizers in OPTIMIZERS
+import torch
+import torch.distributed as dist
+from mmengine import DATASETS, Config
+from mmengine.registry import MODELS, OPTIMIZERS
 from omegaconf import OmegaConf
+from primesim.loss import LOSS
 
 # imported for their registrations in MODELS (fine-tuning and stage 1, stage 2,
 # stage 3, stage 4)
@@ -28,8 +29,6 @@ from primesim.modules import (  # noqa: F401
     PrimeSimTrainModule,
 )
 from primesim.runner import LOGGERS, launch_training_task
-from primesim.loss import LOSS
-
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 

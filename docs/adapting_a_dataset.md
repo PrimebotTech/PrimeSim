@@ -82,8 +82,8 @@ Subclass `SlotWriter` and implement `_write`:
 class GetStateMyRobot(SlotWriter):
     def _write(self, slots, slot_name, block, source=""):
         # slots[slot_name] is (traj_len, 31); block is your raw column
-        slots[slot_name][:, 0:7]  = quat_wxyz_to_xyzw(block[:, 3:10])
-        slots[slot_name][:, 7]    = block[:, 10]
+        slots[slot_name][:, 0:7] = quat_wxyz_to_xyzw(block[:, 3:10])
+        slots[slot_name][:, 7] = block[:, 10]
         ...
 ```
 

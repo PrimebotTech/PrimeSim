@@ -578,9 +578,7 @@ class PrimeSimPipeline(torch.nn.Module):
         outputs = []
         for local_start in range(0, latent_frames, CAUSAL_CHUNK_SIZE):
             chunk = keep_first(
-                noise[
-                    :, :, :, local_start : local_start + CAUSAL_CHUNK_SIZE
-                ].clone(),
+                noise[:, :, :, local_start : local_start + CAUSAL_CHUNK_SIZE].clone(),
                 local_start,
             )
             for step_id, timestep in enumerate(steps):

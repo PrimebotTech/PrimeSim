@@ -32,9 +32,7 @@ class PhaseAdamW(torch.optim.AdamW):
         all_groups = self.param_groups
         try:
             self.param_groups = [
-                group
-                for group in all_groups
-                if group["phase"] == self._active_phase
+                group for group in all_groups if group["phase"] == self._active_phase
             ]
             return super().step(closure=closure)
         finally:

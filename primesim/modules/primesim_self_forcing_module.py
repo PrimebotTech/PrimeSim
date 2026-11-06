@@ -81,9 +81,7 @@ class PrimeSimSelfForcingModule(PrimeSimDMDModule):
         )
         self.opening_num_frames = int(opening_num_frames)
         self.continuation_num_frames = int(continuation_num_frames)
-        if (self.opening_num_frames - 1) % 4 or (
-            self.continuation_num_frames - 1
-        ) % 4:
+        if (self.opening_num_frames - 1) % 4 or (self.continuation_num_frames - 1) % 4:
             raise ValueError("Stage-4 RGB windows must be 1 plus a multiple of four.")
         self.score_window_mode = str(score_window_mode).lower()
         if self.score_window_mode not in {"random", "head", "tail"}:
@@ -114,9 +112,7 @@ class PrimeSimSelfForcingModule(PrimeSimDMDModule):
             if not parameter.requires_grad:
                 continue
             target = (
-                no_decay
-                if parameter.ndim <= 1 or name.endswith(".bias")
-                else decay
+                no_decay if parameter.ndim <= 1 or name.endswith(".bias") else decay
             )
             target.append(parameter)
         return decay, no_decay
@@ -215,9 +211,7 @@ class PrimeSimSelfForcingModule(PrimeSimDMDModule):
         action_mask = inputs.get("action_mask")
         if state is None or action_mask is None:
             raise ValueError("Stage 4 needs state and action_mask from the dataset.")
-        actions_are_relative = bool(
-            _uniform_batch_int(inputs, "actions_are_relative")
-        )
+        actions_are_relative = bool(_uniform_batch_int(inputs, "actions_are_relative"))
         if opening:
             self._chain_action_anchor = state[:, :1].clone()
             self._chain_actions_are_relative = actions_are_relative
@@ -327,9 +321,7 @@ class PrimeSimSelfForcingModule(PrimeSimDMDModule):
         noise = torch.randn_like(generated)
         with torch.no_grad():
             noisy = self.scheduler.add_noise(generated.detach(), noise, t)
-            fake = self.score(
-                self.fake_score_dit, noisy, t, inputs["context"], inputs
-            )
+            fake = self.score(self.fake_score_dit, noisy, t, inputs["context"], inputs)
             fake_x0 = self.predict_clean(noisy, fake, t)
             real_cond = self.score(
                 self.real_score_dit, noisy, t, inputs["context"], inputs
